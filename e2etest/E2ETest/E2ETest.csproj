@@ -104,7 +104,7 @@
   <ItemGroup>
     <ProjectReference Include="..\E2ETestFramework\E2ETestFramework.csproj">
       <Project>{a2500bd2-a9a2-4085-9978-dee3675b02dd}</Project>
-      <Name>Microsoft.WindowsAzure.Mobile.TestFramework</Name>
+      <Name>E2ETestFramework</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

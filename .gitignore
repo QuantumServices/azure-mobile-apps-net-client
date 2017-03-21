@@ -18,6 +18,6 @@ e2etest/output/*
 src/**/AppPackages/*
 unittest/**/AppPackages/*
 .vs/
-e2etest/*/project.lock.json
-e2etest/*/*.nuget.targets
+*.nuget.targets
 *.bak
+project.lock.json

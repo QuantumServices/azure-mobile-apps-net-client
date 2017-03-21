@@ -85,10 +85,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Compile Include="..\Microsoft.WindowsAzure.MobileServices.WindowsStore.Test\UI\GroupDescription.cs">
+    <Compile Include="..\Microsoft.WindowsAzure.MobileServices.UWP.Test\UI\GroupDescription.cs">
       <Link>UI\GroupDescription.cs</Link>
     </Compile>
-    <Compile Include="..\Microsoft.WindowsAzure.MobileServices.WindowsStore.Test\UI\TestDescription.cs">
+    <Compile Include="..\Microsoft.WindowsAzure.MobileServices.UWP.Test\UI\TestDescription.cs">
       <Link>UI\TestDescription.cs</Link>
     </Compile>
     <Compile Include="App.xaml.cs">

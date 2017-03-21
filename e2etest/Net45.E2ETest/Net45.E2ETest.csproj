@@ -114,10 +114,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Compile Include="..\WindowsStore.E2ETest\UI\GroupDescription.cs">
+    <Compile Include="..\UWP.E2ETest\UI\GroupDescription.cs">
       <Link>UI\GroupDescription.cs</Link>
     </Compile>
-    <Compile Include="..\WindowsStore.E2ETest\UI\TestDescription.cs">
+    <Compile Include="..\UWP.E2ETest\UI\TestDescription.cs">
       <Link>UI\TestDescription.cs</Link>
     </Compile>
     <Compile Include="App.xaml.cs">
@@ -201,11 +201,11 @@
   <ItemGroup>
     <ProjectReference Include="..\E2ETestFramework\E2ETestFramework.csproj">
       <Project>{a2500bd2-a9a2-4085-9978-dee3675b02dd}</Project>
-      <Name>Microsoft.WindowsAzure.Mobile.TestFramework</Name>
+      <Name>E2ETestFramework</Name>
     </ProjectReference>
     <ProjectReference Include="..\E2ETest\E2ETest.csproj">
       <Project>{d8bbc92a-b213-463b-911d-3a106f91d5f9}</Project>
-      <Name>Microsoft.WindowsAzure.Mobile.Test</Name>
+      <Name>E2ETest</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

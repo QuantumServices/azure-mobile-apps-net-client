@@ -16,9 +16,6 @@ namespace Microsoft.WindowsAzure.MobileServices.Test
     public static class TestPlatform
     {
         public static readonly string Net45 = "Net45";
-        public static readonly string WindowsStore = "WindowsStore";
-        public static readonly string WindowsPhone8 = "WindowsPhone8";
-        public static readonly string WindowsPhone81 = "WindowsPhone81";
         public static readonly string UniversalWindowsPlatform = "UniversalWindowsPlatform";
         public static readonly string XamarinAndroid = "XamarinAndroid";
         public static readonly string XamariniOS = "XamariniOS";
@@ -61,10 +58,8 @@ namespace Microsoft.WindowsAzure.MobileServices.Test
         /// </summary>
         public static IList<string> PlatformAssemblyNames = new string[] 
         {
-            "Microsoft.WindowsAzure.Mobile.Win8.Test2",
-            "Microsoft.WindowsAzure.Mobile.WP8.Test2",
-            "Microsoft.WindowsAzure.Mobile.WP81.Test2",
-            "Microsoft.WindowsAzure.Mobile.Android.Test2",
+            "Microsoft.WindowsAzure.Mobile.Win8.Test",
+            "Microsoft.WindowsAzure.Mobile.Android.Test",
             "MicrosoftWindowsAzureMobileiOSE2ETest"
         };
 

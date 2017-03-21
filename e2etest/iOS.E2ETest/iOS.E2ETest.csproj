@@ -120,7 +120,7 @@
     </None>
     <None Include="packages.config" />
     <None Include="readme.txt" />
-    <Compile Include="..\WindowsStore.E2ETest\TestPlatform\CurrentTestPlatform.cs">
+    <Compile Include="..\UWP.E2ETest\TestPlatform\CurrentTestPlatform.cs">
       <Link>TestPlatform\CurrentTestPlatform.cs</Link>
     </Compile>
     <Compile Include="UI\LoginViewController.cs" />
@@ -188,11 +188,11 @@
     </ProjectReference>
     <ProjectReference Include="..\E2ETestFramework\E2ETestFramework.csproj">
       <Project>{A2500BD2-A9A2-4085-9978-DEE3675B02DD}</Project>
-      <Name>Microsoft.WindowsAzure.Mobile.TestFramework</Name>
+      <Name>E2ETestFramework</Name>
     </ProjectReference>
     <ProjectReference Include="..\E2ETest\E2ETest.csproj">
       <Project>{D8BBC92A-B213-463B-911D-3A106F91D5F9}</Project>
-      <Name>Microsoft.WindowsAzure.Mobile.Test</Name>
+      <Name>E2ETest</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup />
