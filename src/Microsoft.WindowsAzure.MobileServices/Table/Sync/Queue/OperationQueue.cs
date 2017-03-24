@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Microsoft.WindowsAzure.MobileServices.Query;
 using Microsoft.WindowsAzure.MobileServices.Threading;
 using Newtonsoft.Json.Linq;
+using System.Collections;
 
 namespace Microsoft.WindowsAzure.MobileServices.Sync
 {
@@ -90,6 +91,11 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             return this.itemLocks.Acquire(id, cancellationToken);
         }
 
+        public Task<IDisposable> LockItemsAsync(IEnumerable<string> ids, CancellationToken cancellationToken)
+        {
+            return this.itemLocks.Acquire(ids, cancellationToken);
+        }
+
         public virtual async Task<MobileServiceTableOperation> GetOperationByItemIdAsync(string tableName, string itemId)
         {
             MobileServiceTableQueryDescription query = CreateQuery();
@@ -98,6 +104,26 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
                                 Compare(BinaryOperatorKind.Equal, "itemId", itemId));
             JObject op = await this.store.FirstOrDefault(query);
             return MobileServiceTableOperation.Deserialize(op);
+        }
+
+        public virtual async Task<IEnumerable<MobileServiceTableOperation>> GetOperationsByItemIdAsync(string tableName, IEnumerable<string> itemIds)
+        {
+            MobileServiceTableQueryDescription query = CreateQuery();
+
+            var tableNameNode = Compare(BinaryOperatorKind.Equal, "tableName", tableName);
+
+            if (itemIds != null && itemIds.Any())
+            {
+                BinaryOperatorNode itemIdInList = itemIds.Select(t => Compare(BinaryOperatorKind.Equal, "itemId", t))
+                                                         .Aggregate((first, second) => new BinaryOperatorNode(BinaryOperatorKind.Or, first, second));
+                query.Filter = new BinaryOperatorNode(BinaryOperatorKind.And, tableNameNode, itemIdInList);
+            }
+
+            query.Ordering.Add(new OrderByNode(new MemberAccessNode(null, "sequence"), OrderByDirection.Ascending));
+
+            QueryResult result = await this.store.QueryAsync(query);
+
+            return result.Values?.Select(obj => MobileServiceTableOperation.Deserialize(obj as JObject)).ToList();
         }
 
         public async Task<MobileServiceTableOperation> GetOperationAsync(string id)

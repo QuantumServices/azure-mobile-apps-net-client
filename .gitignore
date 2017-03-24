@@ -21,3 +21,8 @@ unittest/**/AppPackages/*
 *.nuget.targets
 *.bak
 project.lock.json
+*.opendb
+*.opensdf
+*.sdf
+*.cachefile
+*.VC.db

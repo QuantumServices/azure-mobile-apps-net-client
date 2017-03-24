@@ -13,6 +13,7 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
     {
         // --- Persisted properties -- //
         public string Id { get; private set; }
+
         public abstract MobileServiceTableOperationKind Kind { get; }
         public MobileServiceTableKind TableKind { get; private set; }
         public string TableName { get; private set; }
@@ -162,7 +163,6 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             string tableName = obj.Value<string>("tableName");
             var tableKind = (MobileServiceTableKind)obj.Value<int?>("tableKind").GetValueOrDefault();
             string itemId = obj.Value<string>("itemId");
-
 
             MobileServiceTableOperation operation = null;
             switch (kind)

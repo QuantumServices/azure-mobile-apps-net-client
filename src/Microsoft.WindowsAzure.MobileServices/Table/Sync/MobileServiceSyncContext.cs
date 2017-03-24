@@ -36,14 +36,14 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
         private ActionBlock syncQueue;
 
         /// <summary>
-        /// Queue for pending operations (insert,delete,update) against remote table 
+        /// Queue for pending operations (insert,delete,update) against remote table
         /// </summary>
         private OperationQueue opQueue;
 
-        private StoreTrackingOptions storeTrackingOptions; 
-        
+        private StoreTrackingOptions storeTrackingOptions;
+
         private IMobileServiceLocalStore localOperationsStore;
-        
+
         public IMobileServiceSyncHandler Handler { get; private set; }
 
         public IMobileServiceLocalStore Store
@@ -118,7 +118,7 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
                 this.opQueue = await OperationQueue.LoadAsync(store);
                 this.settings = new MobileServiceSyncSettingsManager(store);
                 this.localOperationsStore = StoreChangeTrackerFactory.CreateTrackedStore(store, StoreOperationSource.Local, trackingOptions, this.client.EventManager, this.settings);
-                
+
                 this.initializeTask.SetResult(null);
             }
         }
@@ -178,10 +178,10 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
         /// <param name="tableName">The name of table to pull</param>
         /// <param name="tableKind">The kind of table</param>
         /// <param name="queryId">A string that uniquely identifies this query and is used to keep track of its sync state.</param>
-        /// <param name="query">An OData query that determines which items to 
+        /// <param name="query">An OData query that determines which items to
         /// pull from the remote table.</param>
         /// <param name="options">An instance of <see cref="MobileServiceRemoteTableOptions"/></param>
-        /// <param name="parameters">A dictionary of user-defined parameters and values to include in 
+        /// <param name="parameters">A dictionary of user-defined parameters and values to include in
         /// the request URI query string.</param>
         /// <param name="relatedTables">
         /// List of tables that may have related records that need to be push before this table is pulled down.
@@ -292,7 +292,7 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
                                           this.client,
                                           this,
                                           cancellationToken);
-                
+
                 await this.ExecuteSyncAction(action);
             }
         }
@@ -441,7 +441,7 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
 
                 if (existing != null)
                 {
-                    existing.Collapse(operation); // cancel either existing, new or both operation 
+                    existing.Collapse(operation); // cancel either existing, new or both operation
                     // delete error for collapsed operation
                     await this.Store.DeleteAsync(MobileServiceLocalSystemTables.SyncErrors, existing.Id);
                     if (existing.IsCancelled) // if cancelled we delete it
@@ -462,12 +462,77 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             });
         }
 
+        private Task ExecuteBulkOperationAsync(MobileServiceTableBulkOperation operation, IEnumerable<JObject> items)
+        {
+            IEnumerable<string> itemIds = items.Select(item => item.Value<string>(MobileServiceSystemColumns.Id)).ToList();
+            return this.ExecuteBulkOperationSafeAsync(itemIds, operation.TableName, async () =>
+            {
+                // Existing operations in queue for items in the bulk operation
+                IEnumerable<MobileServiceTableOperation> existingOperations = await this.opQueue.GetOperationsByItemIdAsync(operation.TableName, itemIds);
+
+                // Current operations with existing operations in queue
+                IEnumerable<MobileServiceTableOperation> currentConflictedOperations = existingOperations.Select(op =>
+                        MobileServiceTableOperation.Deserialize(items.Where(item => item.Value<string>(MobileServiceSystemColumns.Id) == op.ItemId)
+                        .FirstOrDefault()));
+
+                foreach (MobileServiceTableOperation existing in existingOperations)
+                {
+                    MobileServiceTableOperation currentOperation = currentConflictedOperations.Where(op => op.ItemId == existing.ItemId).Single();
+                    existing.Validate(currentOperation);
+                }
+
+                try
+                {
+                    await operation.ExecuteLocalAsync(this.localOperationsStore, items); // first execute operation on local store
+                }
+                catch (Exception ex)
+                {
+                    if (ex is MobileServiceLocalStoreException)
+                    {
+                        throw;
+                    }
+                    throw new MobileServiceLocalStoreException("Failed to perform operation on local store.", ex);
+                }
+
+                foreach (MobileServiceTableOperation existing in existingOperations)
+                {
+                    MobileServiceTableOperation currentOperation = currentConflictedOperations.Where(op => op.ItemId == existing.ItemId).Single();
+                    existing.Collapse(currentOperation); // cancel either existing, new or both operation
+                    // delete error for collapsed operation
+                    await this.Store.DeleteAsync(MobileServiceLocalSystemTables.SyncErrors, existing.Id);
+                    if (existing.IsCancelled) // if cancelled we delete it
+                    {
+                        await this.opQueue.DeleteAsync(existing.Id, existing.Version);
+                    }
+                    else if (existing.IsUpdated)
+                    {
+                        await this.opQueue.UpdateAsync(existing);
+                    }
+                }
+
+                // if validate cancelled the operation, dont queue it
+            });
+        }
+
         private async Task ExecuteOperationSafeAsync(string itemId, string tableName, Func<Task> action)
         {
             await this.EnsureInitializedAsync();
 
-            // take slowest lock first and quickest last in order to avoid blocking quick operations for long time            
+            // take slowest lock first and quickest last in order to avoid blocking quick operations for long time
             using (await this.opQueue.LockItemAsync(itemId, CancellationToken.None))  // prevent any inflight operation on the same item
+            using (await this.opQueue.LockTableAsync(tableName, CancellationToken.None)) // prevent interferance with any in-progress pull/purge action
+            using (await this.storeQueueLock.WriterLockAsync()) // prevent any other operation from interleaving between store and queue insert
+            {
+                await action();
+            }
+        }
+
+        private async Task ExecuteBulkOperationSafeAsync(IEnumerable<string> itemIds, string tableName, Func<Task> action)
+        {
+            await this.EnsureInitializedAsync();
+
+            // take slowest lock first and quickest last in order to avoid blocking quick operations for long time
+            using (await this.opQueue.LockItemsAsync(itemIds, CancellationToken.None))  // prevent any inflight operation on the same item
             using (await this.opQueue.LockTableAsync(tableName, CancellationToken.None)) // prevent interferance with any in-progress pull/purge action
             using (await this.storeQueueLock.WriterLockAsync()) // prevent any other operation from interleaving between store and queue insert
             {

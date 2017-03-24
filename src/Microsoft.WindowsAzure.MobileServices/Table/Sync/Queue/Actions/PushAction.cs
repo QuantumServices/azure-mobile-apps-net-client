@@ -79,7 +79,6 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             }
             catch (Exception ex)
             {
-
                 batch.OtherErrors.Add(new MobileServiceLocalStoreException("Failed to read errors from the local store.", ex));
             }
             return batchStatus;
@@ -129,7 +128,7 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
         {
             MobileServiceTableOperation operation = await this.OperationQueue.PeekAsync(0, this.tableKind, this.tableNames);
 
-            // keep taking out operations and executing them until queue is empty or operation finds the bookmark or batch is aborted 
+            // keep taking out operations and executing them until queue is empty or operation finds the bookmark or batch is aborted
             while (operation != null)
             {
                 using (await this.OperationQueue.LockItemAsync(operation.ItemId, this.CancellationToken))
@@ -221,10 +220,10 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
                                                                         operation.Item,
                                                                         rawResult,
                                                                         result)
-                                                                        {
-                                                                            TableKind = this.tableKind,
-                                                                            Context = this.context
-                                                                        };
+                {
+                    TableKind = this.tableKind,
+                    Context = this.context
+                };
                 await batch.AddSyncErrorAsync(syncError);
             }
 

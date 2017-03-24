@@ -14,18 +14,25 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
     /// Enumeration for kinds of table operations.
     /// </summary>
     public enum MobileServiceTableOperationKind
-    {        
+    {
         /// <summary>
         /// Insert operation
         /// </summary>
         Insert = 0,
+
         /// <summary>
         /// Update operation
         /// </summary>
         Update = 1,
+
         /// <summary>
         /// Delete operation
         /// </summary>
-        Delete = 2
+        Delete = 2,
+
+        /// <summary>
+        /// Bulk Insert Operation
+        /// </summary>
+        BulkInsert = 3
     }
 }

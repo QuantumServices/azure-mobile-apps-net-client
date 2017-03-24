@@ -1,16 +1,13 @@
-﻿// ----------------------------------------------------------------------------
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// ----------------------------------------------------------------------------
-
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace Microsoft.WindowsAzure.MobileServices.Sync
 {
-    /// <summary>
-    /// An object representing table operation against remote table
-    /// </summary>
-    public interface IMobileServiceTableOperation
+    public interface IMobileServiceTableBulkOperation
     {
         /// <summary>
         /// The kind of operation
@@ -28,14 +25,14 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
         IMobileServiceTable Table { get; }
 
         /// <summary>
-        /// The item associated with the operation.
+        /// The items associated with the bulk operation.
         /// </summary>
-        JObject Item { get; set; }
+        IEnumerable<JObject> Items { get; set; }
 
         /// <summary>
         /// Executes the operation against remote table.
         /// </summary>
-        Task<JObject> ExecuteAsync();
+        Task<IEnumerable<JObject>> ExecuteAsync();
 
         /// <summary>
         /// Abort the parent push operation.

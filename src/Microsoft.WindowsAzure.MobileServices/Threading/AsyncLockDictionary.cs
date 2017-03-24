@@ -13,7 +13,7 @@ namespace Microsoft.WindowsAzure.MobileServices.Threading
 {
     internal class AsyncLockDictionary
     {
-        sealed class LockEntry: IDisposable
+        private sealed class LockEntry : IDisposable
         {
             public int Count;
             public readonly AsyncLock Lock = new AsyncLock();
@@ -24,26 +24,26 @@ namespace Microsoft.WindowsAzure.MobileServices.Threading
             }
         }
 
-        Dictionary<string, LockEntry> locks = new Dictionary<string, LockEntry>();
+        private Dictionary<string, LockEntry> locks = new Dictionary<string, LockEntry>();
 
         public async Task<IDisposable> Acquire(string key, CancellationToken cancellationToken)
         {
             LockEntry entry;
 
-            lock(locks)
+            lock (locks)
             {
                 if (!locks.TryGetValue(key, out entry))
                 {
                     locks[key] = entry = new LockEntry();
                 }
-                entry.Count++;                
+                entry.Count++;
             }
 
             IDisposable releaser = await entry.Lock.Acquire(cancellationToken);
 
             return new DisposeAction(() =>
             {
-                lock(locks)
+                lock (locks)
                 {
                     entry.Count--;
                     releaser.Dispose();
@@ -52,6 +52,22 @@ namespace Microsoft.WindowsAzure.MobileServices.Threading
                         this.locks.Remove(key);
                         entry.Dispose();
                     }
+                }
+            });
+        }
+
+        public async Task<IDisposable> Acquire(IEnumerable<string> keys, CancellationToken cancellationToken)
+        {
+            List<IDisposable> lockEntries = new List<IDisposable>();
+            foreach (string key in keys)
+            {
+                lockEntries.Add(await Acquire(key, cancellationToken));
+            }
+            return new DisposeAction(() =>
+            {
+                foreach (IDisposable action in lockEntries)
+                {
+                    action.Dispose();
                 }
             });
         }
