@@ -15,18 +15,31 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
 
         public MobileServiceTableKind TableKind { get; private set; }
         public string TableName { get; private set; }
-        public IEnumerable<string> ItemIds { get; private set; }
-        public IEnumerable<JObject> Items { get; set; }
 
-        public MobileServiceTableOperationState State { get; internal set; }
-        public long Sequence { get; set; }
-        public long Version { get; set; }
+        public IEnumerable<string> ItemIds
+        {
+            get
+            {
+                return Operations.Select(op => op.ItemId);
+            }
+        }
+
+        public IEnumerable<JObject> Items
+        {
+            get
+            {
+                return Operations.Select(op => op.Item);
+            }
+        }
+
+        public IEnumerable<MobileServiceTableOperation> Operations { get; internal set; }
+        public long StartSequence { get; set; }
 
         public long ItemCount
         {
             get
             {
-                return Items.LongCount();
+                return Operations.Where(op => !op.IsCancelled).LongCount();
             }
         }
 
@@ -37,9 +50,6 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
         }
 
         public MobileServiceTable Table { get; set; }
-
-        public bool IsCancelled { get; private set; }
-        public bool IsUpdated { get; private set; }
 
         public virtual bool CanWriteResultToStore
         {
@@ -53,11 +63,8 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
 
         protected MobileServiceTableBulkOperation(string tableName, MobileServiceTableKind tableKind, IEnumerable<string> itemIds)
         {
-            this.State = MobileServiceTableOperationState.Pending;
             this.TableKind = tableKind;
             this.TableName = tableName;
-            this.ItemIds = itemIds;
-            this.Version = 1;
         }
 
         public void AbortPush()
@@ -67,39 +74,22 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
 
         public async Task<IEnumerable<JObject>> ExecuteAsync()
         {
-            throw new NotImplementedException();
-            //if (this.IsCancelled)
-            //{
-            //    return null;
-            //}
+            if (this.Operations.Any(op => op.Item == null))
+            {
+                throw new MobileServiceInvalidOperationException("Operation must have an items associated with it.", request: null, response: null);
+            }
 
-            //if (this.Item == null)
-            //{
-            //    throw new MobileServiceInvalidOperationException("Operation must have an item associated with it.", request: null, response: null);
-            //}
+            IEnumerable<JToken> response = await OnExecuteAsync();
+            var result = response as IEnumerable<JObject>;
+            if (response != null && result == null)
+            {
+                throw new MobileServiceInvalidOperationException("Mobile Service table operation returned an unexpected response.", request: null, response: null);
+            }
 
-            //IEnumerable<JToken> response = await OnExecuteAsync();
-            //var result = response as IEnumerable<JObject>;
-            //if (response != null && result == null)
-            //{
-            //    throw new MobileServiceInvalidOperationException("Mobile Service table operation returned an unexpected response.", request: null, response: null);
-            //}
-
-            //return result;
+            return result;
         }
 
         protected abstract Task<IEnumerable<JToken>> OnExecuteAsync();
-
-        internal void Cancel()
-        {
-            this.IsCancelled = true;
-        }
-
-        internal void Update()
-        {
-            this.Version++;
-            this.IsUpdated = true;
-        }
 
         /// <summary>
         /// Execute the operation on sync store
@@ -108,58 +98,28 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
         /// <param name="item">The item to use for store operation</param>
         public abstract Task ExecuteLocalAsync(IMobileServiceLocalStore store, IEnumerable<JObject> items);
 
-        /// <summary>
-        /// Validates that the operation can collapse with the late operation
-        /// </summary>
-        /// <exception cref="InvalidOperationException">This method throws when the operation cannot collapse with new operation.</exception>
-        public abstract void Validate(MobileServiceTableOperation newOperation);
-
-        /// <summary>
-        /// Collapse this operation with the late operation by cancellation of either operation.
-        /// </summary>
-        public abstract void Collapse(MobileServiceTableOperation newOperation);
-
-        /// <summary>
-        /// Defines the the table for storing operations
-        /// </summary>
-        /// <param name="store">An instance of <see cref="IMobileServiceLocalStore"/></param>
-        internal static void DefineTable(MobileServiceLocalStore store)
-        {
-            store.DefineTable(MobileServiceLocalSystemTables.OperationQueue, new JObject()
-            {
-                { MobileServiceSystemColumns.Id, String.Empty },
-                { "kind", 0 },
-                { "state", 0 },
-                { "tableName", String.Empty },
-                { "tableKind", 0 },
-                { "itemId", String.Empty },
-                { "item", String.Empty },
-                { MobileServiceSystemColumns.CreatedAt, DateTime.Now },
-                { "sequence", 0 },
-                { "version", 0 }
-            });
-        }
-
         internal IEnumerable<JObject> Serialize()
         {
             //Use the sequence as the start of the sequence
-            long sequence = this.Sequence - 1;
-            return ItemIds.Select(itemId => new JObject()
-            {
-                { MobileServiceSystemColumns.Id, Guid.NewGuid().ToString("N") },
-                { "kind", (int)this.Kind },
-                { "state", (int)this.State },
-                { "tableName", this.TableName },
-                { "tableKind", (int)this.TableKind },
-                { "itemId", itemId },
-                { "item",
-                    Items != null && this.SerializeItemToQueue ?
-                        Items.Single(item => item.Value<string>(MobileServiceSystemColumns.Id) == itemId).ToString(Formatting.None)
-                        : null
-                },
-                { "sequence", sequence++ },
-                { "version",  this.Version }
-            }).ToList();
+            long sequence = this.StartSequence;
+            return Operations
+                .Where(op => !op.IsCancelled)
+                .Select(op => new JObject()
+                    {
+                        { MobileServiceSystemColumns.Id, op.Id },
+                        { "kind", (int)this.Kind },
+                        { "state", (int)op.State },
+                        { "tableName", this.TableName },
+                        { "tableKind", (int)this.TableKind },
+                        { "itemId", op.ItemId },
+                        { "item",
+                            Items != null && this.SerializeItemToQueue ?
+                                Items.Single(item => item.Value<string>(MobileServiceSystemColumns.Id) == op.ItemId).ToString(Formatting.None)
+                                : null
+                        },
+                        { "sequence", op.Sequence = sequence++ },
+                        { "version",  op.Version }
+                    }).ToList();
         }
 
         internal static MobileServiceTableBulkOperation Deserialize(IEnumerable<JObject> objects)

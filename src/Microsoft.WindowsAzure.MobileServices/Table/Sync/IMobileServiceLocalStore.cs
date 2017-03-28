@@ -59,5 +59,13 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
         /// <param name="id">Id for the object to be read.</param>
         /// <returns>A task that returns the item read from local table.</returns>
         Task<JObject> LookupAsync(string tableName, string id);
+
+        /// <summary>
+        /// Reads items from the local table with specified id.
+        /// </summary>
+        /// <param name="tableName">Name of the local table.</param>
+        /// <param name="ids">A list of ids of the items to read.</param>
+        /// <returns>A task that returns the items read from local table.</returns>
+        Task<IList<JObject>> LookupAsync(string tableName, IEnumerable<string> ids);
     }
 }

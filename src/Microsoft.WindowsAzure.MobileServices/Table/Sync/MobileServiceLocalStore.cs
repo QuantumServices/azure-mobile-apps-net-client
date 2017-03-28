@@ -15,7 +15,7 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
     /// <summary>
     /// Base implementation for <see cref="IMobileServiceLocalStore"/>
     /// </summary>
-    public abstract class MobileServiceLocalStore: IMobileServiceLocalStore
+    public abstract class MobileServiceLocalStore : IMobileServiceLocalStore
     {
         /// <summary>
         /// Indicates whether store has been initialized or not.
@@ -70,7 +70,7 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
         /// </summary>
         /// <param name="tableName">Name of the local table.</param>
         /// <param name="items">A list of items to be inserted.</param>
-        /// <param name="ignoreMissingColumns"><code>true</code> if the extra properties on item can be ignored; <code>false</code> otherwise.</param>        
+        /// <param name="ignoreMissingColumns"><code>true</code> if the extra properties on item can be ignored; <code>false</code> otherwise.</param>
         /// <returns>A task that completes when item has been upserted in local table.</returns>
         public abstract Task UpsertAsync(string tableName, IEnumerable<JObject> items, bool ignoreMissingColumns);
 
@@ -96,6 +96,14 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
         /// <param name="id">Id for the object to be read.</param>
         /// <returns>A task that returns the item read from local table.</returns>
         public abstract Task<JObject> LookupAsync(string tableName, string id);
+
+        /// <summary>
+        /// Reads items from the local table with specified id.
+        /// </summary>
+        /// <param name="tableName">Name of the local table.</param>
+        /// <param name="ids">A list of ids of the items to read.</param>
+        /// <returns>A task that returns the items read from local table.</returns>
+        public abstract Task<IList<JObject>> LookupAsync(string tableName, IEnumerable<string> ids);
 
         /// <summary>
         /// Throws an exception if store is not initialized.

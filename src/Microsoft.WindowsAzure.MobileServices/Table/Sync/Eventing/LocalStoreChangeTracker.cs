@@ -89,12 +89,15 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
                 case StoreOperationSource.LocalConflictResolution:
                     // No batch notifications for local operations
                     break;
+
                 case StoreOperationSource.ServerPull:
                     result = this.trackingContext.TrackingOptions.HasFlag(StoreTrackingOptions.NotifyServerPullBatch);
                     break;
+
                 case StoreOperationSource.ServerPush:
                     result = this.trackingContext.TrackingOptions.HasFlag(StoreTrackingOptions.NotifyServerPushBatch);
                     break;
+
                 default:
                     throw new InvalidOperationException("Unknown tracking source");
             }
@@ -112,15 +115,19 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
                 case StoreOperationSource.LocalPurge:
                     result = this.trackingContext.TrackingOptions.HasFlag(StoreTrackingOptions.NotifyLocalOperations);
                     break;
+
                 case StoreOperationSource.LocalConflictResolution:
                     result = this.trackingContext.TrackingOptions.HasFlag(StoreTrackingOptions.NotifyLocalConflictResolutionOperations);
                     break;
+
                 case StoreOperationSource.ServerPull:
                     result = this.trackingContext.TrackingOptions.HasFlag(StoreTrackingOptions.NotifyServerPullOperations);
                     break;
+
                 case StoreOperationSource.ServerPush:
                     result = this.trackingContext.TrackingOptions.HasFlag(StoreTrackingOptions.NotifyServerPushOperations);
                     break;
+
                 default:
                     throw new InvalidOperationException("Unknown tracking source");
             }
@@ -204,6 +211,21 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             return this.store.LookupAsync(tableName, id);
         }
 
+        public Task<IList<JObject>> LookupAsync(string tableName, IEnumerable<string> ids)
+        {
+            if (tableName == null)
+            {
+                throw new ArgumentNullException("tableName");
+            }
+
+            if (ids == null)
+            {
+                throw new ArgumentNullException("ids");
+            }
+
+            return this.store.LookupAsync(tableName, ids);
+        }
+
         public Task<JToken> ReadAsync(MobileServiceTableQueryDescription query)
         {
             if (query == null)
@@ -254,7 +276,7 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
                             operationKind = LocalStoreOperationKind.Update;
 
                             // If the update isn't a result of a local operation, check if the item exposes a version property
-                            // and if we truly have a new version (an actual change) before tracking the change. 
+                            // and if we truly have a new version (an actual change) before tracking the change.
                             // This avoids update notifications for records that haven't changed, which would usually happen as a result of a pull
                             // operation, because of the logic used to pull changes.
                             if (this.trackingContext.Source != StoreOperationSource.Local && supportsVersion
@@ -308,8 +330,8 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
 
             if (this.trackBatches)
             {
-               this.operationsBatch.IncrementOperationCount(operationKind)
-                   .ContinueWith(t => t.Exception.Handle(e => true), TaskContinuationOptions.OnlyOnFaulted);
+                this.operationsBatch.IncrementOperationCount(operationKind)
+                    .ContinueWith(t => t.Exception.Handle(e => true), TaskContinuationOptions.OnlyOnFaulted);
             }
 
             if (this.trackRecordOperations)

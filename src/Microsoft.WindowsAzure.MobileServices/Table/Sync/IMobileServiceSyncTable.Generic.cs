@@ -66,6 +66,16 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
         /// </returns>
         Task InsertAsync(T instance);
 
+        /// <summary>
+        /// Bulk Inserts <paramref name="instances"/> into the table.
+        /// </summary>
+        /// <param name="instances">
+        /// The instances to insert into the table.
+        /// </param>
+        /// <returns>
+        /// A task that will complete when the insert finishes.
+        /// </returns>
+        Task InsertAsync(IEnumerable<T> instances);
 
         /// <summary>
         /// Updates an <paramref name="instance"/> in the table.

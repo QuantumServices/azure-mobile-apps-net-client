@@ -9,7 +9,7 @@ using MockTable = System.Collections.Generic.Dictionary<string, Newtonsoft.Json.
 
 namespace Microsoft.WindowsAzure.MobileServices.Test
 {
-    class MobileServiceLocalStoreMock : IMobileServiceLocalStore
+    internal class MobileServiceLocalStoreMock : IMobileServiceLocalStore
     {
         public readonly Dictionary<string, MockTable> TableMap = new Dictionary<string, MockTable>();
 
@@ -126,6 +126,22 @@ namespace Microsoft.WindowsAzure.MobileServices.Test
             JObject item;
             table.TryGetValue(id, out item);
             return Task.FromResult(item);
+        }
+
+        public virtual Task<IList<JObject>> LookupAsync(string tableName, IEnumerable<string> ids)
+        {
+            MockTable table = GetTable(tableName);
+            IList<JObject> items = new List<JObject>();
+            foreach (string id in ids)
+            {
+                JObject item;
+                if (table.TryGetValue(id, out item))
+                {
+                    items.Add(item);
+                }
+            }
+
+            return Task.FromResult(items);
         }
 
         private Dictionary<string, JObject> GetTable(string tableName)

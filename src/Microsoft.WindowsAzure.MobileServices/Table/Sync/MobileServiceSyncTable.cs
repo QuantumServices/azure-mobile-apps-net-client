@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
+using System.Linq;
 
 namespace Microsoft.WindowsAzure.MobileServices.Sync
 {
@@ -81,6 +82,28 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             await this.syncContext.InsertAsync(this.TableName, this.Kind, (string)id, instance);
 
             return instance;
+        }
+
+        public async Task<IList<JObject>> InsertAsync(IEnumerable<JObject> instances)
+        {
+            foreach (JObject instance in instances)
+            {
+                object id = MobileServiceSerializer.GetId(instance, ignoreCase: false, allowDefault: true);
+                if (id == null)
+                {
+                    id = Guid.NewGuid().ToString("N");
+                    instance[MobileServiceSystemColumns.Id] = (string)id;
+                }
+                else
+                {
+                    EnsureIdIsString(id);
+                }
+            }
+
+            IEnumerable<string> ids = instances.Select(instance => instance.Value<string>(MobileServiceSystemColumns.Id));
+            await this.syncContext.InsertAsync(this.TableName, this.Kind, ids, instances);
+
+            return instances.ToList();
         }
 
         public async Task UpdateAsync(JObject instance)

@@ -30,6 +30,11 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             return store.UpsertAsync(tableName, new[] { item }, fromServer);
         }
 
+        public static Task UpsertAsync(this IMobileServiceLocalStore store, string tableName, IEnumerable<JObject> items, bool fromServer)
+        {
+            return store.UpsertAsync(tableName, items, fromServer);
+        }
+
         /// <summary>
         /// Deletes an item with the specified id in the local table.
         /// </summary>

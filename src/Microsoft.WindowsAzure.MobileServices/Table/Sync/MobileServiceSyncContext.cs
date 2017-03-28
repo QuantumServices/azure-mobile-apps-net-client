@@ -144,6 +144,16 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             await this.ExecuteOperationAsync(operation, item);
         }
 
+        public async Task InsertAsync(string tableName, MobileServiceTableKind tableKind, IEnumerable<string> ids, IEnumerable<JObject> items)
+        {
+            var operation = new InsertAllOperation(tableName, tableKind, ids)
+            {
+                Table = await this.GetTable(tableName)
+            };
+
+            await this.ExecuteBulkOperationAsync(operation, items);
+        }
+
         public async Task UpdateAsync(string tableName, MobileServiceTableKind tableKind, string id, JObject item)
         {
             var operation = new UpdateOperation(tableName, tableKind, id)
@@ -462,13 +472,12 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             });
         }
 
-        private Task ExecuteBulkOperationAsync(MobileServiceTableBulkOperation operation, IEnumerable<JObject> items)
+        private Task ExecuteBulkOperationAsync(MobileServiceTableBulkOperation bulkOperation, IEnumerable<JObject> items)
         {
-            IEnumerable<string> itemIds = items.Select(item => item.Value<string>(MobileServiceSystemColumns.Id)).ToList();
-            return this.ExecuteBulkOperationSafeAsync(itemIds, operation.TableName, async () =>
+            return this.ExecuteBulkOperationSafeAsync(bulkOperation.ItemIds, bulkOperation.TableName, async () =>
             {
                 // Existing operations in queue for items in the bulk operation
-                IEnumerable<MobileServiceTableOperation> existingOperations = await this.opQueue.GetOperationsByItemIdAsync(operation.TableName, itemIds);
+                IEnumerable<MobileServiceTableOperation> existingOperations = await this.opQueue.GetOperationsByItemIdAsync(bulkOperation.TableName, bulkOperation.ItemIds);
 
                 // Current operations with existing operations in queue
                 IEnumerable<MobileServiceTableOperation> currentConflictedOperations = existingOperations.Select(op =>
@@ -477,13 +486,13 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
 
                 foreach (MobileServiceTableOperation existing in existingOperations)
                 {
-                    MobileServiceTableOperation currentOperation = currentConflictedOperations.Where(op => op.ItemId == existing.ItemId).Single();
+                    MobileServiceTableOperation currentOperation = bulkOperation.Operations.Where(op => op.ItemId == existing.ItemId).Single();
                     existing.Validate(currentOperation);
                 }
 
                 try
                 {
-                    await operation.ExecuteLocalAsync(this.localOperationsStore, items); // first execute operation on local store
+                    await bulkOperation.ExecuteLocalAsync(this.localOperationsStore, items); // first execute operation on local store
                 }
                 catch (Exception ex)
                 {
@@ -496,7 +505,7 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
 
                 foreach (MobileServiceTableOperation existing in existingOperations)
                 {
-                    MobileServiceTableOperation currentOperation = currentConflictedOperations.Where(op => op.ItemId == existing.ItemId).Single();
+                    MobileServiceTableOperation currentOperation = bulkOperation.Operations.Where(op => op.ItemId == existing.ItemId).Single();
                     existing.Collapse(currentOperation); // cancel either existing, new or both operation
                     // delete error for collapsed operation
                     await this.Store.DeleteAsync(MobileServiceLocalSystemTables.SyncErrors, existing.Id);
@@ -510,7 +519,8 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
                     }
                 }
 
-                // if validate cancelled the operation, dont queue it
+                // queue operations that are not cancelled
+                await this.opQueue.EnqueueAsync(bulkOperation);
             });
         }
 

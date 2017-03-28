@@ -16,7 +16,7 @@ using Newtonsoft.Json.Serialization;
 namespace Microsoft.WindowsAzure.MobileServices
 {
     /// <summary>
-    /// Provides serialization and deserialization for a 
+    /// Provides serialization and deserialization for a
     /// <see cref="MobileServiceClient"/>.
     /// </summary>
     internal class MobileServiceSerializer
@@ -62,7 +62,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         internal const int MaxStringIdLength = 255;
 
         /// <summary>
-        /// The JSON serializer settings to use with the 
+        /// The JSON serializer settings to use with the
         /// <see cref="MobileServiceSerializer"/>.
         /// </summary>
         public MobileServiceJsonSerializerSettings SerializerSettings { get; set; }
@@ -96,9 +96,9 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// </param>
         /// <param name="ignoreCase">
         /// Set to true to find any variant spelling of the id is in the object
-        /// </param> 
+        /// </param>
         /// <param name="id">
-        /// The value of the id property from the instance if the instance has an 
+        /// The value of the id property from the instance if the instance has an
         /// id property.
         /// </param>
         /// <returns>
@@ -145,10 +145,10 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// </param>
         /// <param name="ignoreCase">
         /// Set to true to find any variant spelling of the id is in the object
-        /// </param> 
+        /// </param>
         /// <param name="allowDefault">
         /// Indicates if a defualt value for the id is considered valid.
-        /// </param> 
+        /// </param>
         /// <returns>
         /// The id property value.
         /// </returns>
@@ -200,7 +200,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         public static JObject RemoveSystemProperties(JObject instance, out string version, MobileServiceSystemProperties propertiesToKeep = MobileServiceSystemProperties.None)
         {
             version = null;
-            var systemProperties = new String[]{MobileServiceSerializer.CreatedAtSystemPropertyString, MobileServiceSerializer.DeletedSystemPropertyString, MobileServiceSerializer.VersionSystemPropertyString, MobileServiceSerializer.UpdatedAtSystemPropertyString}.AsEnumerable<String>();
+            var systemProperties = new String[] { MobileServiceSerializer.CreatedAtSystemPropertyString, MobileServiceSerializer.DeletedSystemPropertyString, MobileServiceSerializer.VersionSystemPropertyString, MobileServiceSerializer.UpdatedAtSystemPropertyString }.AsEnumerable<String>();
 
             bool haveCloned = false;
             foreach (JProperty property in instance.Properties())
@@ -242,16 +242,16 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// </summary>
         /// <param name="propertyName">
         /// Name of the system property to see if it should be removed
-        /// </param> 
+        /// </param>
         /// <param name="propertiesToKeep">
         /// The list of system properties to be kept
-        /// </param> 
+        /// </param>
         /// <param name="property">
         /// Type of the system property to check
-        /// </param> 
+        /// </param>
         /// <param name="systemPropertyName">
         /// Name of the actual system property to look for
-        /// </param> 
+        /// </param>
         private static bool IsKeptSystemProperty(string propertyName, MobileServiceSystemProperties propertiesToKeep, MobileServiceSystemProperties property, string systemPropertyName)
         {
             if ((propertiesToKeep & property) == property &&
@@ -268,7 +268,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// </summary>
         /// <param name="allowDefault">
         /// Indicates if a defualt value for the id is considered valid.
-        /// </param> 
+        /// </param>
         /// <param name="id">The id to validate.</param>
         public static void EnsureValidId(object id, bool allowDefault = false)
         {
@@ -289,12 +289,12 @@ namespace Microsoft.WindowsAzure.MobileServices
             {
                 EnsureValidIntId(id, allowDefault);
             }
-        }                
+        }
 
         public static bool IsIntegerId(JsonProperty idProperty)
         {
             return IsIntegerId(idProperty.PropertyType);
-        }        
+        }
 
         public static bool IsIntegerId(object id)
         {
@@ -362,7 +362,6 @@ namespace Microsoft.WindowsAzure.MobileServices
                     {
                         isInvalid = true;
                     }
-
                 }
                 else if (!idPropertyType.GetTypeInfo().IsAssignableFrom(idType.GetTypeInfo()))
                 {
@@ -376,7 +375,6 @@ namespace Microsoft.WindowsAzure.MobileServices
                         id.GetType().FullName,
                         typeof(T).FullName));
                 }
-
             }
             else if (idPropertyType.GetTypeInfo().IsValueType)
             {
@@ -385,7 +383,6 @@ namespace Microsoft.WindowsAzure.MobileServices
                          "<null>",
                          typeof(T).FullName));
             }
-
         }
 
         /// <summary>
@@ -413,7 +410,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// </param>
         /// <param name="allowDefault">
         /// Indicates if a defualt value for the id is considered valid.
-        /// </param> 
+        /// </param>
         /// <returns>
         /// The id property value.
         /// </returns>
@@ -544,6 +541,21 @@ namespace Microsoft.WindowsAzure.MobileServices
         }
 
         /// <summary>
+        /// Deseralizes a list of <see cref="JObject"/> into a collection of objects
+        /// </summary>
+        /// <typeparam name="T">The type of objects to deserialize to</typeparam>
+        /// <param name="objects">The list of <see cref="JObject"/></param>
+        /// <returns>
+        /// The collection of deserialized instances.
+        /// </returns>
+        public IEnumerable<T> Deserialize<T>(IEnumerable<JObject> objects)
+        {
+            Debug.Assert(objects != null);
+            JsonSerializer jsonSerializer = this.SerializerSettings.GetSerializerFromSettings();
+            return objects.Select(obj => Deserialize<T>(obj, jsonSerializer));
+        }
+
+        /// <summary>
         /// Deserializes a JSON string into an instance of type T.
         /// </summary>
         /// <typeparam name="T">
@@ -561,7 +573,7 @@ namespace Microsoft.WindowsAzure.MobileServices
 
             JsonSerializer jsonSerializer = this.SerializerSettings.GetSerializerFromSettings();
             return Deserialize<T>(json, jsonSerializer);
-        }        
+        }
 
         /// <summary>
         /// Deserializes a JSON string into an instance.
@@ -631,13 +643,13 @@ namespace Microsoft.WindowsAzure.MobileServices
                 {
                     throw;
                 }
-              
+
                 object id;
                 bool idTokenIsString = TryGetId(obj, true, out id) && id.GetType() == typeof(string);
 
                 JsonProperty idProperty = this.SerializerSettings.ContractResolver.ResolveIdProperty(typeof(T), throwIfNotFound: false);
                 bool idPropertyIsInteger = idProperty != null && IsIntegerId(idProperty);
-                
+
                 if (idTokenIsString && idPropertyIsInteger)
                 {
                     throw new JsonSerializationException(ex.Message + Environment.NewLine + "You might be affected by Mobile Services latest changes to support string Ids. For more details: http://go.microsoft.com/fwlink/?LinkId=330396", ex);

@@ -108,6 +108,7 @@
     <Compile Include="Table\Sync\LocalStoreOperationKind.cs" />
     <Compile Include="Table\Sync\PullOptions.cs" />
     <Compile Include="Table\Sync\Queue\Operations\IMobileServiceTableBulkOperation.cs" />
+    <Compile Include="Table\Sync\Queue\Operations\InsertAllOperation.cs" />
     <Compile Include="Table\Sync\Queue\Operations\MobileServiceTableBulkOperation.cs" />
     <Compile Include="Table\Sync\Queue\Operations\MobileServiceTableKind.cs" />
     <Compile Include="Table\MobileServiceSystemColumns.cs" />

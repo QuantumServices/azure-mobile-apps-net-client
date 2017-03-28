@@ -82,6 +82,7 @@
     <Compile Include="Table\Sync\Queue\Actions\PullActionTests.cs" />
     <Compile Include="Table\Sync\Queue\Actions\PushActionTests.cs" />
     <Compile Include="Table\Sync\Queue\Operations\DeleteOperationTests.cs" />
+    <Compile Include="Table\Sync\Queue\Operations\InsertAllOperationTests.cs" />
     <Compile Include="Table\Sync\Queue\Operations\MobileServiceTableOperationErrorTests.cs" />
     <Compile Include="Table\Sync\Queue\Operations\MobileServiceTableOperationTests.cs" />
     <Compile Include="Table\Sync\Queue\Operations\UpdateOperationTests.cs" />
@@ -92,6 +93,10 @@
     <ProjectReference Include="..\..\src\Microsoft.WindowsAzure.MobileServices\Microsoft.WindowsAzure.Mobile.csproj">
       <Project>{75557793-e36e-4190-8714-5bd2665859fb}</Project>
       <Name>Microsoft.WindowsAzure.Mobile</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Microsoft.WindowsAzure.MobileServices.TestFramework\Microsoft.WindowsAzure.Mobile.TestFramework.csproj">
+      <Project>{3CFFB62F-3384-4D71-BADC-7542D5C31A9E}</Project>
+      <Name>Microsoft.WindowsAzure.Mobile.TestFramework</Name>
     </ProjectReference>
     <ProjectReference Include="..\Microsoft.WindowsAzure.MobileServices.Test\Microsoft.WindowsAzure.Mobile.Test.csproj">
       <Project>{05b6709b-c25a-4c1d-8d61-9e05bee0db86}</Project>

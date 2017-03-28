@@ -32,7 +32,9 @@ namespace Microsoft.WindowsAzure.MobileServices.SQLiteStore
         private sqlite3 connection;
         private readonly SemaphoreSlim operationSemaphore = new SemaphoreSlim(1, 1);
 
-        protected MobileServiceSQLiteStore() { }
+        protected MobileServiceSQLiteStore()
+        {
+        }
 
         /// <summary>
         /// Initializes a new instance of <see cref="MobileServiceSQLiteStore"/>
@@ -131,7 +133,6 @@ namespace Microsoft.WindowsAzure.MobileServices.SQLiteStore
 
                             countRows = this.ExecuteQueryInternal(query.TableName, sql, formatter.Parameters);
 
-
                             long count = countRows[0].Value<long>("count");
                             result = new JObject()
                             {
@@ -171,7 +172,6 @@ namespace Microsoft.WindowsAzure.MobileServices.SQLiteStore
 
             return UpsertAsyncInternal(tableName, items, ignoreMissingColumns);
         }
-
 
         private Task UpsertAsyncInternal(string tableName, IEnumerable<JObject> items, bool ignoreMissingColumns)
         {
@@ -347,6 +347,62 @@ namespace Microsoft.WindowsAzure.MobileServices.SQLiteStore
                 });
         }
 
+        /// <summary>
+        /// Executes a lookup against a local table.
+        /// </summary>
+        /// <param name="tableName">Name of the local table.</param>
+        /// <param name="ids">A list of ids of items to lookup.</param>
+        /// <returns>A Task that will return with a list of results when the lookup finishes.</returns>
+        public override async Task<IList<JObject>> LookupAsync(string tableName, IEnumerable<string> ids)
+        {
+            if (tableName == null)
+            {
+                throw new ArgumentNullException("tableName");
+            }
+            if (ids == null)
+            {
+                throw new ArgumentNullException("ids");
+            }
+
+            this.EnsureInitialized();
+
+            List<JObject> items = new List<JObject>();
+
+            int batchSize = ids.Count() / MaxParametersPerQuery;
+
+            // split a bigger look up query into smaller batches
+            foreach (var batch in ids.Split(maxLength: batchSize))
+            {
+                string idRange = String.Join(",", batch.Select((_, i) => "@id" + i));
+
+                string sql = string.Format("SELECT * FROM {0} WHERE {1} IN ({2})",
+                                           SqlHelpers.FormatTableName(tableName),
+                                           MobileServiceSystemColumns.Id,
+                                           idRange);
+                var parameters = new Dictionary<string, object>();
+
+                int j = 0;
+                foreach (string id in batch)
+                {
+                    parameters.Add("@id" + (j++), id);
+                }
+
+                await this.operationSemaphore.WaitAsync()
+                   .ContinueWith(t =>
+                   {
+                       try
+                       {
+                           items.AddRange(ExecuteQueryInternal(tableName, sql, parameters));
+                       }
+                       finally
+                       {
+                           this.operationSemaphore.Release();
+                       }
+                   });
+            }
+            return items;
+        }
+
         private TableDefinition GetTable(string tableName)
         {
             TableDefinition table;
@@ -422,7 +478,6 @@ namespace Microsoft.WindowsAzure.MobileServices.SQLiteStore
                 if (parameters.Any())
                 {
                     sql.Remove(sql.Length - 1, 1); // remove the trailing comma
-
                 }
 
                 sql.AppendFormat(" WHERE {0} = {1}", SqlHelpers.FormatMember(MobileServiceSystemColumns.Id), AddParameter(item, parameters, idColumn));

@@ -15,7 +15,7 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
     public interface IMobileServiceSyncTable
     {
         /// <summary>
-        /// Gets a reference to the <see cref="MobileServiceClient"/> associated 
+        /// Gets a reference to the <see cref="MobileServiceClient"/> associated
         /// with this table.
         /// </summary>
         MobileServiceClient MobileServiceClient { get; }
@@ -51,6 +51,17 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
         /// A task that will complete when the insert finishes.
         /// </returns>
         Task<JObject> InsertAsync(JObject instance);
+
+        /// <summary>
+        /// Bulk Inserts <paramref name="instances"/> into the table.
+        /// </summary>
+        /// <param name="instances">
+        /// The instances to insert into the table.
+        /// </param>
+        /// <returns>
+        /// A task that will complete when the insert finishes.
+        /// </returns>
+        Task<IList<JObject>> InsertAsync(IEnumerable<JObject> instances);
 
         /// <summary>
         /// Updates an <paramref name="instance"/> in the table.
@@ -92,11 +103,11 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
         /// A string that uniquely identifies this query and is used to keep track of its sync state. Supplying this parameter enables incremental sync whenever the same key is used again.
         /// </param>
         /// <param name="query">
-        /// An OData query that determines which items to 
+        /// An OData query that determines which items to
         /// pull from the remote table.
         /// </param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <param name="pushOtherTables">

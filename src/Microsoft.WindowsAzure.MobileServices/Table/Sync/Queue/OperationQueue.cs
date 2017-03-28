@@ -111,19 +111,14 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             MobileServiceTableQueryDescription query = CreateQuery();
 
             var tableNameNode = Compare(BinaryOperatorKind.Equal, "tableName", tableName);
-
-            if (itemIds != null && itemIds.Any())
-            {
-                BinaryOperatorNode itemIdInList = itemIds.Select(t => Compare(BinaryOperatorKind.Equal, "itemId", t))
-                                                         .Aggregate((first, second) => new BinaryOperatorNode(BinaryOperatorKind.Or, first, second));
-                query.Filter = new BinaryOperatorNode(BinaryOperatorKind.And, tableNameNode, itemIdInList);
-            }
-
+            query.Filter = tableNameNode;
             query.Ordering.Add(new OrderByNode(new MemberAccessNode(null, "sequence"), OrderByDirection.Ascending));
 
             QueryResult result = await this.store.QueryAsync(query);
 
-            return result.Values?.Select(obj => MobileServiceTableOperation.Deserialize(obj as JObject)).ToList();
+            return result.Values?
+                .Where(obj => itemIds.Contains(obj.Value<string>(MobileServiceSystemColumns.Id)))
+                .Select(obj => MobileServiceTableOperation.Deserialize(obj as JObject)).ToList();
         }
 
         public async Task<MobileServiceTableOperation> GetOperationAsync(string id)
@@ -141,6 +136,14 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             op.Sequence = Interlocked.Increment(ref this.sequenceId);
             await this.store.UpsertAsync(MobileServiceLocalSystemTables.OperationQueue, op.Serialize(), fromServer: false);
             Interlocked.Increment(ref this.pendingOperations);
+        }
+
+        public async Task EnqueueAsync(MobileServiceTableBulkOperation bulkOp)
+        {
+            bulkOp.StartSequence = Interlocked.Increment(ref this.sequenceId);
+            Interlocked.Exchange(ref this.sequenceId, this.sequenceId + bulkOp.ItemCount - 2);
+            await this.store.UpsertAsync(MobileServiceLocalSystemTables.OperationQueue, bulkOp.Serialize(), false);
+            Interlocked.Exchange(ref this.pendingOperations, this.pendingOperations + bulkOp.ItemCount);
         }
 
         public virtual async Task<bool> DeleteAsync(string id, long version)

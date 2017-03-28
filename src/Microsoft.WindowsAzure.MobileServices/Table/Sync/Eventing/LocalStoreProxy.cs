@@ -15,6 +15,7 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
         {
             this.store = store;
         }
+
         public Task InitializeAsync()
         {
             throw new NotSupportedException();
@@ -43,6 +44,11 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
         public Task<Newtonsoft.Json.Linq.JObject> LookupAsync(string tableName, string id)
         {
             return this.store.LookupAsync(tableName, id);
+        }
+
+        public Task<IList<Newtonsoft.Json.Linq.JObject>> LookupAsync(string tableName, IEnumerable<string> ids)
+        {
+            return this.store.LookupAsync(tableName, ids);
         }
 
         public void Dispose()

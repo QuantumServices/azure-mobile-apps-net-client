@@ -114,6 +114,22 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             serializer.Deserialize(inserted, instance);
         }
 
+        public async Task InsertAsync(IEnumerable<T> instances)
+        {
+            MobileServiceSerializer serializer = this.MobileServiceClient.Serializer;
+            IList<JObject> values = new List<JObject>();
+            foreach (T instance in instances)
+            {
+                var value = serializer.Serialize(instance) as JObject;
+                // remove system properties since the jtoken insert overload doesn't remove them
+                value = RemoveSystemPropertiesKeepVersion(value);
+                values.Add(value);
+            }
+
+            IList<JObject> inserted = await base.InsertAsync(values);
+            instances = serializer.Deserialize<T>(inserted);
+        }
+
         public Task UpdateAsync(T instance)
         {
             MobileServiceSerializer serializer = this.MobileServiceClient.Serializer;
