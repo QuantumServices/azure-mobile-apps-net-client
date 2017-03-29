@@ -28,11 +28,6 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
         /// <summary>
         /// Delete operation
         /// </summary>
-        Delete = 2,
-
-        /// <summary>
-        /// Bulk Insert Operation
-        /// </summary>
-        BulkInsert = 3
+        Delete = 2
     }
 }
