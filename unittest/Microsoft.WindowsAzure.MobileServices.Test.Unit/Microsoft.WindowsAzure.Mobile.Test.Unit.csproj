@@ -85,6 +85,7 @@
     <Compile Include="Table\Sync\Queue\Operations\InsertAllOperationTests.cs" />
     <Compile Include="Table\Sync\Queue\Operations\MobileServiceTableOperationErrorTests.cs" />
     <Compile Include="Table\Sync\Queue\Operations\MobileServiceTableOperationTests.cs" />
+    <Compile Include="Table\Sync\Queue\Operations\UpdateAllOperationTests.cs" />
     <Compile Include="Table\Sync\Queue\Operations\UpdateOperationTests.cs" />
     <Compile Include="Table\Sync\Queue\Operations\InsertOperationTests.cs" />
     <Compile Include="Threading\AsyncLockDictionaryTests.cs" />
