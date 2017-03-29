@@ -108,17 +108,8 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
 
         public virtual async Task<IEnumerable<MobileServiceTableOperation>> GetOperationsByItemIdAsync(string tableName, IEnumerable<string> itemIds)
         {
-            MobileServiceTableQueryDescription query = CreateQuery();
-
-            var tableNameNode = Compare(BinaryOperatorKind.Equal, "tableName", tableName);
-            query.Filter = tableNameNode;
-            query.Ordering.Add(new OrderByNode(new MemberAccessNode(null, "sequence"), OrderByDirection.Ascending));
-
-            QueryResult result = await this.store.QueryAsync(query);
-
-            return result.Values?
-                .Where(obj => itemIds.Contains(obj.Value<string>(MobileServiceSystemColumns.Id)))
-                .Select(obj => MobileServiceTableOperation.Deserialize(obj as JObject)).ToList();
+            IEnumerable<JObject> operations = await store.LookupAsync(tableName, itemIds);
+            return operations.Select(obj => MobileServiceTableOperation.Deserialize(obj));
         }
 
         public async Task<MobileServiceTableOperation> GetOperationAsync(string id)

@@ -14,7 +14,7 @@ namespace Microsoft.WindowsAzure.MobileServices.Test.Unit.Table.Sync.Queue.Opera
     public class InsertAllOperationTests
     {
         private InsertAllOperation operation;
-        private long bulkInsertCount = 1000;
+        private long bulkInsertCount = 10000;
 
         [TestInitialize]
         public void Initialize()
@@ -38,7 +38,6 @@ namespace Microsoft.WindowsAzure.MobileServices.Test.Unit.Table.Sync.Queue.Opera
                 items.Add(item);
             }
             await this.operation.ExecuteLocalAsync(store.Object, items);
-            var Item = items.FirstOrDefault();
             store.Verify(s => s.UpsertAsync("test", It.IsIn<IEnumerable<JObject>>(items), false), Times.Once());
         }
     }
