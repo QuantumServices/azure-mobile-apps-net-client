@@ -164,6 +164,16 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             await this.ExecuteOperationAsync(operation, item);
         }
 
+        public async Task UpdateAsync(string tableName, MobileServiceTableKind tableKind, IEnumerable<string> ids, IEnumerable<JObject> items)
+        {
+            var operation = new UpdateAllOperation(tableName, tableKind, ids)
+            {
+                Table = await this.GetTable(tableName)
+            };
+
+            await this.ExecuteBulkOperationAsync(operation, items);
+        }
+
         public async Task DeleteAsync(string tableName, MobileServiceTableKind tableKind, string id, JObject item)
         {
             var operation = new DeleteOperation(tableName, tableKind, id)

@@ -138,6 +138,13 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             return base.UpdateAsync(value);
         }
 
+        public Task UpdateAsync(IEnumerable<T> instances)
+        {
+            MobileServiceSerializer serializer = this.MobileServiceClient.Serializer;
+            IEnumerable<JObject> values = instances.Select(instance => serializer.Serialize(instance) as JObject);
+            return base.UpdateAsync(values);
+        }
+
         public Task DeleteAsync(T instance)
         {
             MobileServiceSerializer serializer = this.MobileServiceClient.Serializer;
