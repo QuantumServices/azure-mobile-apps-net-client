@@ -76,7 +76,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// The id of the instance.
         /// </param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <returns>
@@ -104,7 +104,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// The instance to refresh.
         /// </param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <returns>
@@ -130,7 +130,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// The instance to insert.
         /// </param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <returns>
@@ -156,7 +156,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// The instance to update.
         /// </param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <returns>
@@ -176,7 +176,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// </summary>
         /// <param name="instance">The instance to undelete from the table.</param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <returns>A task that will complete when the undelete finishes.</returns>
@@ -199,7 +199,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// <param name="instance">The instance to delete.
         /// </param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <returns>
@@ -227,15 +227,15 @@ namespace Microsoft.WindowsAzure.MobileServices
 
         /// <summary>
         /// Creates a query that will ensure it gets the deleted records. This requires the soft delete feature to be enabled on the Mobile Service. Visit <see href="http://go.microsoft.com/fwlink/?LinkId=507647">the link</see> for details.
-        /// </summary>        
+        /// </summary>
         /// <returns>
         /// A query against the table.
         /// </returns>
         IMobileServiceTableQuery<T> IncludeDeleted();
 
         /// <summary>
-        /// Applies to the source query the specified string key-value 
-        /// pairs to be used as user-defined parameters with the request URI 
+        /// Applies to the source query the specified string key-value
+        /// pairs to be used as user-defined parameters with the request URI
         /// query string.
         /// </summary>
         /// <param name="parameters">
