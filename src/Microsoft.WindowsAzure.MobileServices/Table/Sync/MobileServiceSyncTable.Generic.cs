@@ -127,7 +127,7 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             }
 
             IList<JObject> inserted = await base.InsertAsync(values);
-            instances = serializer.Deserialize<T>(inserted);
+            serializer.Deserialize<T>(inserted, instances);
         }
 
         public Task UpdateAsync(T instance)

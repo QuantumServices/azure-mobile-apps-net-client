@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 using Microsoft.WindowsAzure.MobileServices.Query;
 using Microsoft.WindowsAzure.MobileServices.Threading;
 using Newtonsoft.Json.Linq;
-using System.Collections;
 
 namespace Microsoft.WindowsAzure.MobileServices.Sync
 {
@@ -108,8 +107,39 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
 
         public virtual async Task<IEnumerable<MobileServiceTableOperation>> GetOperationsByItemIdAsync(string tableName, IEnumerable<string> itemIds)
         {
-            IEnumerable<JObject> operations = await store.LookupAsync(tableName, itemIds);
-            return operations.Select(obj => MobileServiceTableOperation.Deserialize(obj));
+            MobileServiceTableQueryDescription query = CreateQuery();
+
+            var tableNameNode = Compare(BinaryOperatorKind.Equal, "tableName", tableName);
+
+            query.Ordering.Add(new OrderByNode(new MemberAccessNode(null, "sequence"), OrderByDirection.Ascending));
+
+            var operations = new List<MobileServiceTableOperation>();
+
+            if (itemIds != null && itemIds.Any())
+            {
+                //TODO: remove this and add implementation to the SqlFormatter Class for bigger query's
+                int batchSize = 800 / itemIds.Count();
+                batchSize = batchSize == 0 ? itemIds.Count() : batchSize;
+                foreach (var batch in itemIds.Split(maxLength: batchSize))
+                {
+                    BinaryOperatorNode itemIdInList = batch.Select(t => Compare(BinaryOperatorKind.Equal, "itemId", t))
+                                                         .Aggregate((first, second) => new BinaryOperatorNode(BinaryOperatorKind.Or, first, second));
+                    query.Filter = new BinaryOperatorNode(BinaryOperatorKind.And, tableNameNode, itemIdInList);
+
+                    QueryResult result = await this.store.QueryAsync(query);
+                    var values = result.Values?.Select(obj => MobileServiceTableOperation.Deserialize(obj as JObject));
+                    operations.AddRange(values);
+                }
+            }
+            else
+            {
+                query.Filter = tableNameNode;
+                QueryResult result = await this.store.QueryAsync(query);
+                var values = result.Values?.Select(obj => MobileServiceTableOperation.Deserialize(obj as JObject));
+                operations.AddRange(values);
+            }
+
+            return operations;
         }
 
         public async Task<MobileServiceTableOperation> GetOperationAsync(string id)

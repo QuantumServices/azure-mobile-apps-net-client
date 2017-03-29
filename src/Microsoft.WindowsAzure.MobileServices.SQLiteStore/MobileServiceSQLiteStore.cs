@@ -368,7 +368,7 @@ namespace Microsoft.WindowsAzure.MobileServices.SQLiteStore
 
             List<JObject> items = new List<JObject>();
 
-            int batchSize = ids.Count() / MaxParametersPerQuery;
+            int batchSize = ValidateQueryBatchSize(ids.Count());
 
             // split a bigger look up query into smaller batches
             foreach (var batch in ids.Split(maxLength: batchSize))
@@ -528,6 +528,16 @@ namespace Microsoft.WindowsAzure.MobileServices.SQLiteStore
             if (batchSize == 0)
             {
                 throw new InvalidOperationException(string.Format("The number of fields per entity in an upsert operation is limited to {0}.", MaxParametersPerQuery));
+            }
+            return batchSize;
+        }
+
+        private static int ValidateQueryBatchSize(int parametersCount)
+        {
+            int batchSize = parametersCount / MaxParametersPerQuery;
+            if (batchSize == 0)
+            {
+                batchSize = parametersCount;
             }
             return batchSize;
         }

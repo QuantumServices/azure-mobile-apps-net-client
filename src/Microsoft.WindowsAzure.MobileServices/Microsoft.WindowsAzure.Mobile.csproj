@@ -47,6 +47,7 @@
     <Compile Include="Collections\MobileServiceCollectionEventArgs.cs" />
     <Compile Include="EnumValueAttribute.cs" />
     <Compile Include="Eventing\EventManagerExtensions.cs" />
+    <Compile Include="Extensions\EnumerableExtensions.cs" />
     <Compile Include="Extensions\PlatformInformationExtensions.cs" />
     <Compile Include="Platform\PreserveAttribute.cs" />
     <Compile Include="Table\Sync\Eventing\LocalStoreProxy.cs" />

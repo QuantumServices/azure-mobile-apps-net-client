@@ -541,21 +541,6 @@ namespace Microsoft.WindowsAzure.MobileServices
         }
 
         /// <summary>
-        /// Deseralizes a list of <see cref="JObject"/> into a collection of objects
-        /// </summary>
-        /// <typeparam name="T">The type of objects to deserialize to</typeparam>
-        /// <param name="objects">The list of <see cref="JObject"/></param>
-        /// <returns>
-        /// The collection of deserialized instances.
-        /// </returns>
-        public IEnumerable<T> Deserialize<T>(IEnumerable<JObject> objects)
-        {
-            Debug.Assert(objects != null);
-            JsonSerializer jsonSerializer = this.SerializerSettings.GetSerializerFromSettings();
-            return objects.Select(obj => Deserialize<T>(obj, jsonSerializer));
-        }
-
-        /// <summary>
         /// Deserializes a JSON string into an instance of type T.
         /// </summary>
         /// <typeparam name="T">
@@ -601,6 +586,26 @@ namespace Microsoft.WindowsAzure.MobileServices
             {
                 JsonConvert.PopulateObject(json.ToString(), instance, this.SerializerSettings);
             }, json);
+        }
+
+        /// <summary>
+        /// Deseralizes a list of <see cref="JObject"/> into a collection of objects
+        /// </summary>
+        /// <typeparam name="T">The type of objects to deserialize to</typeparam>
+        /// <param name="objects">The list of <see cref="JObject"/></param>
+        /// <returns>
+        /// The collection of deserialized instances.
+        /// </returns>
+        public void Deserialize<T>(IEnumerable<JObject> objects, IEnumerable<T> instances)
+        {
+            Debug.Assert(objects != null);
+            Debug.Assert(instances != null);
+            Debug.Assert(objects.Count() == instances.Count());
+
+            for (int i = 0; i < objects.Count(); i++)
+            {
+                Deserialize<T>(objects.ElementAt(i), instances.ElementAt(i));
+            }
         }
 
         /// <summary>

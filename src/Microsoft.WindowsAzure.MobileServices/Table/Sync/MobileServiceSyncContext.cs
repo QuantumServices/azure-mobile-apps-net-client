@@ -489,11 +489,6 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
                 // Existing operations in queue for items in the bulk operation
                 IEnumerable<MobileServiceTableOperation> existingOperations = await this.opQueue.GetOperationsByItemIdAsync(bulkOperation.TableName, bulkOperation.ItemIds);
 
-                // Current operations with existing operations in queue
-                IEnumerable<MobileServiceTableOperation> currentConflictedOperations = existingOperations.Select(op =>
-                        MobileServiceTableOperation.Deserialize(items.Where(item => item.Value<string>(MobileServiceSystemColumns.Id) == op.ItemId)
-                        .FirstOrDefault()));
-
                 foreach (MobileServiceTableOperation existing in existingOperations)
                 {
                     MobileServiceTableOperation currentOperation = bulkOperation.Operations.Where(op => op.ItemId == existing.ItemId).Single();
@@ -513,6 +508,8 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
                     throw new MobileServiceLocalStoreException("Failed to perform operation on local store.", ex);
                 }
 
+                var currentConflictedOperations = new List<MobileServiceTableOperation>();
+
                 foreach (MobileServiceTableOperation existing in existingOperations)
                 {
                     MobileServiceTableOperation currentOperation = bulkOperation.Operations.Where(op => op.ItemId == existing.ItemId).Single();
@@ -527,7 +524,15 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
                     {
                         await this.opQueue.UpdateAsync(existing);
                     }
+
+                    if (currentOperation.IsCancelled || currentOperation.IsUpdated)
+                    {
+                        currentConflictedOperations.Add(currentOperation);
+                    }
                 }
+
+                bulkOperation.Operations = bulkOperation.Operations.ToList();
+                //.Where(op => op.)
 
                 // queue operations that are not cancelled
                 await this.opQueue.EnqueueAsync(bulkOperation);

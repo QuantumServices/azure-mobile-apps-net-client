@@ -12,6 +12,7 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
         public UpdateAllOperation(string tableName, MobileServiceTableKind tableKind, IEnumerable<string> itemIds)
             : base(tableName, tableKind, itemIds)
         {
+            this.Operations = itemIds.Select(itemId => new UpdateOperation(tableName, tableKind, itemId));
         }
 
         public override MobileServiceTableOperationKind Kind

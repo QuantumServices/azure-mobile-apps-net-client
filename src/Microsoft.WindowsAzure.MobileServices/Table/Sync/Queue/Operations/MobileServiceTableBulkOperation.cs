@@ -112,11 +112,7 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
                         { "tableName", this.TableName },
                         { "tableKind", (int)this.TableKind },
                         { "itemId", op.ItemId },
-                        { "item",
-                            Items != null && this.SerializeItemToQueue ?
-                                Items.Single(item => item.Value<string>(MobileServiceSystemColumns.Id) == op.ItemId).ToString(Formatting.None)
-                                : null
-                        },
+                        { "item", op.Item != null && this.SerializeItemToQueue ? op.Item.ToString(Formatting.None) : null},
                         { "sequence", op.Sequence = sequence++ },
                         { "version",  op.Version }
                     }).ToList();
