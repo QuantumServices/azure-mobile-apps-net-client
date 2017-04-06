@@ -2,8 +2,7 @@
 xpkg
 *.suo
 lib
-*.csproj.user
-*.vbproj.user
+*.user
 *.userprefs
 #ignore build files
 bin
@@ -19,5 +18,7 @@ src/**/AppPackages/*
 unittest/**/AppPackages/*
 .vs/
 *.nuget.targets
+*.nuget.props
 *.bak
-project.lock.json
+*.lock.json
+_ReSharper*

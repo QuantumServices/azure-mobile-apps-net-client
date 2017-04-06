@@ -7,7 +7,10 @@
 		<integer>1</integer>
 	</array>
 	<key>UISupportedInterfaceOrientations</key>
-	<array/>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+	</array>
 	<key>MinimumOSVersion</key>
 	<string>10.0</string>
 	<key>UIStatusBarTintParameters</key>

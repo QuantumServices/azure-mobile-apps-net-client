@@ -1,0 +1,79 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\..\build\Microsoft.Azure.Mobile.Client.Build.props" />
+  <PropertyGroup>
+    <TargetFrameworks>netstandard1.4;netstandard1.1;net45;MonoAndroid44;Xamarin.iOS10;uap10.0</TargetFrameworks>
+    <DefaultLanguage>en-US</DefaultLanguage>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <Version>4.0.0-alpha-002</Version>
+    <PackageTitle>Azure Mobile Client SDK</PackageTitle>
+    <Title>Azure Mobile Client SDK</Title>
+    <Authors>Microsoft, azure-sdk</Authors>
+    <Product>$(AssemblyName) ($(TargetFramework))</Product>
+    <PackageLicenseUrl>http://go.microsoft.com/fwlink/?LinkId=286110</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/Azure/azure-mobile-apps-net-client</PackageProjectUrl>
+    <PackageIconUrl>http://go.microsoft.com/fwlink/?LinkID=288890</PackageIconUrl>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <Description>This library provides features for creating Windows and Xamarin mobile apps that connect to Azure Mobile Apps. Azure Mobile Apps allows you to develop an app with a scalable backed hosted in Azure App Service, with support for mobile authentication, offline sync, and push notifications. To learn more about Azure Mobile, go to http://azure.microsoft.com/mobile. </Description>
+    <Summary>Azure Mobile Apps SDK</Summary>
+    <PackageReleaseNotes>https://github.com/Azure/azure-mobile-apps-net-client/blob/master/CHANGELOG.md</PackageReleaseNotes>
+    <RepositoryUrl>https://github.com/Azure/azure-mobile-apps-net-client</RepositoryUrl>
+    <PackageTags>microsoft;windows;azure;mobile;apps;services;windowsazureofficial</PackageTags>
+    <GenerateDocumentationFile Condition=" '$(Configuration)' == 'Release' ">true</GenerateDocumentationFile>
+    <!-- Workaround until Xamarin supports PPDB -->
+    <DebugType>full</DebugType>
+    <RootNamespace>Microsoft.WindowsAzure.MobileServices</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Need this to see the parent refs to Auth -->
+    <ProjectCapability Include="ShowFilesOutsideOfProject" />
+    <!-- This None is here so the conditinonally included files show up in the Solution Explorer -->
+    <None Include="**\*.cs;**\*.xml;**\*.axml" Exclude="obj\**\*.*;bin\**\*.*" />
+    <None Include="..\External\Xamarin.Auth\src\**\*.cs" Exclude="..\External\Xamarin.Auth\src\Xamarin.Auth\AssemblyInfo.cs" />
+    <Compile Remove="Platforms\**\*.*" />
+    <Compile Remove="Features\**\*.*" />
+    <EmbeddedResource Include="Properties\*.rd.xml" />
+    <Compile Update="Resources.Designer.cs" DesignTime="true" AutoGen="true" DependentUpon="Resources.resx" />
+    <EmbeddedResource Update="Resources.resx" Generator="ResXFileCodeGenerator" LastGenOutput="Resources.Designer.cs" />
+  </ItemGroup>
+
+
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'MonoAndroid44' ">
+    <DefineConstants>$(DefineConstants);PLATFORM_ANDROID;XAMARIN_AUTH_INTERNAL</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'Xamarin.iOS10' ">
+    <DefineConstants>$(DefineConstants);PLATFORM_IOS;XAMARIN_AUTH_INTERNAL</DefineConstants>
+  </PropertyGroup>
+  
+  
+  <ItemGroup>
+    <PackageReference Include="MSBuild.Sdk.Extras" Version="1.0.0" PrivateAssets="All" />
+    <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
+  </ItemGroup>
+  <ItemGroup Condition=" '$(TargetFramework)' == 'uap10.0' ">
+    <PackageReference Include="Microsoft.NETCore.UniversalWindowsPlatform" Version="5.2.3" />
+    <PackageReference Include="System.Linq.Queryable" Version="4.0.1" />
+    <Compile Include="Platforms\uwp\**\*.cs" Exclude="Platforms\uwp\Extensions\MobileServiceCollectionViewExtensions.cs" />
+  </ItemGroup>
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.4' or '$(TargetFramework)' == 'netstandard1.1' ">
+    <PackageReference Include="System.Linq.Queryable" Version="4.3.0" />
+  </ItemGroup>
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net45' ">
+    <Reference Include="System.Net.Http" />
+    <Compile Include="Platforms\net45\**\*.cs" />
+  </ItemGroup>
+  
+  <ItemGroup Condition=" '$(TargetFramework)' == 'MonoAndroid44' ">
+    <Compile Include="..\External\Xamarin.Auth\src\Xamarin.Auth\**\*.cs" Exclude="..\External\Xamarin.Auth\src\Xamarin.Auth\AssemblyInfo.cs" />
+    <Compile Include="..\External\Xamarin.Auth\src\Xamarin.Auth.Android\**\*.cs" />
+    <Compile Include="Platforms\android\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'Xamarin.iOS10' ">
+    <Compile Include="..\External\Xamarin.Auth\src\Xamarin.Auth\**\*.cs" Exclude="..\External\Xamarin.Auth\src\Xamarin.Auth\AssemblyInfo.cs" />
+    <Compile Include="..\External\Xamarin.Auth\src\Xamarin.Auth.iOS\**\*.cs" />
+    <Compile Include="Platforms\ios\**\*.cs" />
+  </ItemGroup>
+
+  <Import Project="$(MSBuildSDKExtrasTargets)" Condition="Exists('$(MSBuildSDKExtrasTargets)')" />
+</Project>
