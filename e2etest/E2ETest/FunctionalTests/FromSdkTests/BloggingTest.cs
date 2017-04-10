@@ -7,6 +7,8 @@ using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using Microsoft.WindowsAzure.MobileServices.TestFramework;
 using Newtonsoft.Json;
+using System.Linq;
+using System;
 
 namespace Microsoft.WindowsAzure.MobileServices.Test
 {
@@ -90,6 +92,33 @@ namespace Microsoft.WindowsAzure.MobileServices.Test
             BlogComment opinion = new BlogComment { BlogPostId = first.Id, Text = "Can't wait" };
             await commentTable.InsertAsync(opinion);
             Assert.IsFalse(string.IsNullOrWhiteSpace(opinion.Id));
+        }
+
+        [AsyncTestMethod]
+        public async Task BulkPostComments()
+        {
+            IMobileServiceClient client = GetClient();
+            IMobileServiceTable<BlogPost> postTable = client.GetTable<BlogPost>();
+            IMobileServiceTable<BlogComment> commentTable = client.GetTable<BlogComment>();
+
+            // Add a few posts and a comment
+            Log("Adding post");
+            BlogPost post = new BlogPost { Title = "Windows 8" };
+            await postTable.InsertAsync(post);
+            IList<BlogComment> comments = new List<BlogComment>();
+
+            for (int i = 0; i < 5000; i++)
+            {
+                comments.Add(new BlogComment
+                {
+                    BlogPostId = post.Id,
+                    UserName = "Anonymous",
+                    Text = $"Beta runs great {i}"
+                });
+            }
+
+            await commentTable.InsertAsync(comments);
+            Assert.IsFalse(comments.Any(c => string.IsNullOrWhiteSpace(c.Id)));
         }
 
         [AsyncTestMethod]

@@ -120,7 +120,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// The instance to insert.
         /// </param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <returns>
@@ -135,13 +135,46 @@ namespace Microsoft.WindowsAzure.MobileServices
 
             MobileServiceSerializer serializer = this.MobileServiceClient.Serializer;
             JObject value = serializer.Serialize(instance) as JObject;
-            
+
             string unused;
             value = MobileServiceSerializer.RemoveSystemProperties(value, out unused);
 
             JToken insertedValue = await TransformHttpException(serializer, () => this.InsertAsync(value, parameters, MobileServiceFeatures.TypedTable));
 
             serializer.Deserialize<T>(insertedValue, instance);
+        }
+
+        /// <summary>
+        /// Inserts new instances into the table.
+        /// </summary>
+        /// <param name="instances">
+        /// The instances to insert.
+        /// </param>
+        /// <returns>
+        /// A task that will complete when the insertion has finished.
+        /// </returns>
+        public async Task InsertAsync(ICollection<T> instances)
+        {
+            if (instances == null)
+            {
+                throw new ArgumentNullException("instances");
+            }
+
+            IList<JObject> values = new List<JObject>();
+            MobileServiceSerializer serializer = this.MobileServiceClient.Serializer;
+
+            foreach (T instance in instances)
+            {
+                JObject value = serializer.Serialize(instance) as JObject;
+
+                string unused;
+                value = MobileServiceSerializer.RemoveSystemProperties(value, out unused);
+                values.Add(value);
+            }
+
+            JToken insertValues = await TransformHttpException(serializer, () => this.InsertAsync(values));
+
+            serializer.Deserialize<T>(insertValues as JArray, instances);
         }
 
         /// <summary>
@@ -165,7 +198,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// The instance to update.
         /// </param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <returns>
@@ -183,7 +216,6 @@ namespace Microsoft.WindowsAzure.MobileServices
 
             JToken updatedValue = await TransformHttpException(serializer, () => this.UpdateAsync(value, parameters, MobileServiceFeatures.TypedTable));
 
-
             serializer.Deserialize<T>(updatedValue, instance);
         }
 
@@ -192,7 +224,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// </summary>
         /// <param name="instance">The instance to undelete from the table.</param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <returns>A task that will complete when the undelete finishes.</returns>
@@ -242,7 +274,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// The instance to delete.
         /// </param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <returns>
@@ -287,7 +319,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// The id of the instance.
         /// </param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <returns>
@@ -324,7 +356,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// The instance to refresh.
         /// </param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <returns>
@@ -526,8 +558,8 @@ namespace Microsoft.WindowsAzure.MobileServices
         }
 
         /// <summary>
-        /// Applies to the source query the specified string key-value 
-        /// pairs to be used as user-defined parameters with the request URI 
+        /// Applies to the source query the specified string key-value
+        /// pairs to be used as user-defined parameters with the request URI
         /// query string.
         /// </summary>
         /// <param name="parameters">

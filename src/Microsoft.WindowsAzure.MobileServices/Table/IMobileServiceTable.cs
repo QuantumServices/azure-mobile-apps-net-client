@@ -14,7 +14,7 @@ namespace Microsoft.WindowsAzure.MobileServices
     public interface IMobileServiceTable
     {
         /// <summary>
-        /// Gets a reference to the <see cref="MobileServiceClient"/> associated 
+        /// Gets a reference to the <see cref="MobileServiceClient"/> associated
         /// with this table.
         /// </summary>
         MobileServiceClient MobileServiceClient { get; }
@@ -42,7 +42,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// A query to execute.
         /// </param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <param name="wrapResult">
@@ -71,13 +71,24 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// The instance to insert into the table.
         /// </param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <returns>
         /// A task that will complete when the insert finishes.
         /// </returns>
         Task<JToken> InsertAsync(JObject instance, IDictionary<string, string> parameters);
+
+        /// <summary>
+        /// Inserts <paramref name="instances"/> into the table.
+        /// </summary>
+        /// <param name="instances">
+        /// The instances to insert into the table.
+        /// </param>
+        /// <returns>
+        /// A task that will complete when the insert finishes.
+        /// </returns>
+        Task<JToken> InsertAsync(IEnumerable<JObject> instances);
 
         /// <summary>
         /// Updates an <paramref name="instance"/> in the table.
@@ -97,7 +108,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// The instance to update in the table.
         /// </param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <returns>
@@ -123,7 +134,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// The instance to delete from the table.
         /// </param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <returns>
@@ -143,7 +154,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// </summary>
         /// <param name="instance">The instance to undelete from the table.</param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <returns>A task that will complete when the undelete finishes.</returns>
@@ -167,7 +178,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// The id of the instance to lookup.
         /// </param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <returns>

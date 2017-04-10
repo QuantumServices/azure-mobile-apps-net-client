@@ -27,6 +27,12 @@ namespace Microsoft.WindowsAzure.MobileServices
         internal const string TableRouteSeparatorName = "tables";
 
         /// <summary>
+        /// The route postfix used to denote a bulk operation on the table like
+        /// .../{app}/tables/bulk
+        /// </summary>
+        internal const string TableBulkOperationName = "bulk";
+
+        /// <summary>
         /// The HTTP PATCH method used for update operations.
         /// </summary>
         private static readonly HttpMethod patchHttpMethod = new HttpMethod("PATCH");
@@ -37,7 +43,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         public const string IncludeDeletedParameterName = "__includeDeleted";
 
         /// <summary>
-        /// Gets a reference to the <see cref="MobileServiceClient"/> associated 
+        /// Gets a reference to the <see cref="MobileServiceClient"/> associated
         /// with this table.
         /// </summary>
         public MobileServiceClient MobileServiceClient { get; private set; }
@@ -82,7 +88,6 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// </returns>
         public async virtual Task<JToken> ReadAsync(string query)
         {
-
             return await this.ReadAsync(query, null, wrapResult: false);
         }
 
@@ -93,7 +98,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// A query to execute.
         /// </param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <param name="wrapResult">
@@ -122,7 +127,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// A query to execute.
         /// </param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <param name="features">
@@ -205,7 +210,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// The instance to insert into the table.
         /// </param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <returns>
@@ -217,13 +222,27 @@ namespace Microsoft.WindowsAzure.MobileServices
         }
 
         /// <summary>
+        /// Inserts <paramref name="instances"/> into the table.
+        /// </summary>
+        /// <param name="instances">
+        /// The instances to insert into the table.
+        /// </param>
+        /// <returns>
+        /// A task that will complete when the insert finishes.
+        /// </returns>
+        public Task<JToken> InsertAsync(IEnumerable<JObject> instances)
+        {
+            return this.InsertAsync(instances, MobileServiceFeatures.UntypedTable);
+        }
+
+        /// <summary>
         /// Inserts an <paramref name="instance"/> into the table.
         /// </summary>
         /// <param name="instance">
         /// The instance to insert into the table.
         /// </param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <param name="features">
@@ -262,6 +281,50 @@ namespace Microsoft.WindowsAzure.MobileServices
             });
         }
 
+        /// <summary>
+        /// Inserts <paramref name="instances"/> into the table.
+        /// </summary>
+        /// <param name="instances">
+        /// The instances to insert into the table.
+        /// </param>
+        /// <param name="features">
+        /// Value indicating which features of the SDK are being used in this call. Useful for telemetry.
+        /// </param>
+        /// <returns>
+        /// A task that will complete when the insert finishes.
+        /// </returns>
+        internal async Task<JToken> InsertAsync(IEnumerable<JObject> instances, MobileServiceFeatures features)
+        {
+            if (instances == null)
+            {
+                throw new ArgumentNullException("instances");
+            }
+
+            foreach (JObject instance in instances)
+            {
+                object id = MobileServiceSerializer.GetId(instance, ignoreCase: false, allowDefault: true);
+                bool isStringIdOrDefaultIntId = id is string || MobileServiceSerializer.IsDefaultId(id);
+                if (!isStringIdOrDefaultIntId)
+                {
+                    throw new ArgumentException(
+                            string.Format(
+                                CultureInfo.InvariantCulture,
+                                "Cannot insert if the {0} member is already set.",
+                               MobileServiceSystemColumns.Id),
+                                "instances");
+                }
+            }
+            string uriString = GetUri(this.TableName, null, null, true);
+
+            MobileServiceSerializer serializer = this.MobileServiceClient.Serializer;
+            JToken body = serializer.Serialize(instances);
+
+            return await this.TransformHttpException(async () =>
+            {
+                MobileServiceHttpResponse response = await this.MobileServiceClient.HttpClient.RequestAsync(HttpMethod.Post, uriString, this.MobileServiceClient.CurrentUser, body.ToString(Formatting.None), true, features: this.Features | features);
+                return GetJTokenFromResponse(response);
+            });
+        }
 
         /// <summary>
         /// Updates an <paramref name="instance"/> in the table.
@@ -284,7 +347,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// The instance to update in the table.
         /// </param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <returns>
@@ -302,7 +365,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// The instance to update in the table.
         /// </param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <param name="features">
@@ -346,7 +409,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// </summary>
         /// <param name="instance">The instance to undelete from the table.</param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <returns>A task that will complete when the undelete finishes.</returns>
@@ -363,7 +426,6 @@ namespace Microsoft.WindowsAzure.MobileServices
             }
 
             object id = MobileServiceSerializer.GetId(instance);
-
 
             Dictionary<string, string> headers = StripSystemPropertiesAndAddVersionHeader(ref instance, ref parameters, id);
             string content = instance.ToString(Formatting.None);
@@ -397,7 +459,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// The instance to delete from the table.
         /// </param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <returns>
@@ -415,7 +477,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// The instance to delete from the table.
         /// </param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <param name="features">
@@ -464,7 +526,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// The id of the instance to lookup.
         /// </param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <returns>
@@ -482,7 +544,7 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// The id of the instance to lookup.
         /// </param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <param name="features">
@@ -578,21 +640,26 @@ namespace Microsoft.WindowsAzure.MobileServices
         /// The id of the instance.
         /// </param>
         /// <param name="parameters">
-        /// A dictionary of user-defined parameters and values to include in 
+        /// A dictionary of user-defined parameters and values to include in
         /// the request URI query string.
         /// </param>
         /// <returns>
         /// A URI string.
         /// </returns>
-        private static string GetUri(string tableName, object id = null, IDictionary<string, string> parameters = null)
+        private static string GetUri(string tableName, object id = null, IDictionary<string, string> parameters = null, bool bulkOperation = false)
         {
             Debug.Assert(!string.IsNullOrEmpty(tableName));
 
             string uriPath = MobileServiceUrlBuilder.CombinePaths(TableRouteSeparatorName, tableName);
-            if (id != null)
+            if (id != null && !bulkOperation)
             {
                 string idString = Uri.EscapeDataString(string.Format(CultureInfo.InvariantCulture, "{0}", id));
                 uriPath = MobileServiceUrlBuilder.CombinePaths(uriPath, idString);
+            }
+
+            if (bulkOperation)
+            {
+                uriPath = MobileServiceUrlBuilder.CombinePaths(uriPath, TableBulkOperationName);
             }
 
             string queryString = MobileServiceUrlBuilder.GetQueryString(parameters);
@@ -706,7 +773,7 @@ namespace Microsoft.WindowsAzure.MobileServices
 
         /// <summary>
         /// Gets a valid etag from a string value. Etags are surrounded
-        /// by double quotes and any internal quotes must be escaped with a 
+        /// by double quotes and any internal quotes must be escaped with a
         /// '\'.
         /// </summary>
         /// <param name="value">The value to create the etag from.</param>
@@ -730,7 +797,7 @@ namespace Microsoft.WindowsAzure.MobileServices
 
         /// <summary>
         /// Gets a value from an etag. Etags are surrounded
-        /// by double quotes and any internal quotes must be escaped with a 
+        /// by double quotes and any internal quotes must be escaped with a
         /// '\'.
         /// </summary>
         /// <param name="etag">The etag to get the value from.</param>

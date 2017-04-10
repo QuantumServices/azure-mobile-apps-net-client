@@ -540,6 +540,18 @@ namespace Microsoft.WindowsAzure.MobileServices
             return json.Select(jtoken => Deserialize<T>(jtoken, jsonSerializer));
         }
 
+        public void Deserialize<T>(JArray json, ICollection<T> instances)
+        {
+            Debug.Assert(json != null);
+            Debug.Assert(json.Count == instances.Count);
+
+            JsonSerializer jsonSerializer = this.SerializerSettings.GetSerializerFromSettings();
+            for (int i = 0; i < json.Count; i++)
+            {
+                Deserialize<T>(json.ElementAt(i), instances.ElementAt(i));
+            }
+        }
+
         /// <summary>
         /// Deserializes a JSON string into an instance of type T.
         /// </summary>
