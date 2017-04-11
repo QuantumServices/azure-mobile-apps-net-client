@@ -117,6 +117,17 @@ namespace Microsoft.WindowsAzure.MobileServices
         Task<JToken> UpdateAsync(JObject instance, IDictionary<string, string> parameters);
 
         /// <summary>
+        /// Updates <paramref name="instances"/> in the table.
+        /// </summary>
+        /// <param name="instances">
+        /// The instances to update in the table.
+        /// </param>
+        /// <returns>
+        /// A task that will complete when the update finishes.
+        /// </returns>
+        Task<JToken> UpdateAsync(IEnumerable<JObject> instances);
+
+        /// <summary>
         /// Deletes an <paramref name="instance"/> from the table.
         /// </summary>
         /// <param name="instance">

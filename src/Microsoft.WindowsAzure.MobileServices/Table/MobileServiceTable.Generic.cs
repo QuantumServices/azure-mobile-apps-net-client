@@ -172,7 +172,7 @@ namespace Microsoft.WindowsAzure.MobileServices
                 values.Add(value);
             }
 
-            JToken insertValues = await TransformHttpException(serializer, () => this.InsertAsync(values));
+            JToken insertValues = await TransformHttpException(serializer, () => this.InsertAsync(values, MobileServiceFeatures.TypedTable));
 
             serializer.Deserialize<T>(insertValues as JArray, instances);
         }
@@ -217,6 +217,39 @@ namespace Microsoft.WindowsAzure.MobileServices
             JToken updatedValue = await TransformHttpException(serializer, () => this.UpdateAsync(value, parameters, MobileServiceFeatures.TypedTable));
 
             serializer.Deserialize<T>(updatedValue, instance);
+        }
+
+        /// <summary>
+        /// Updates instances in the table.
+        /// </summary>
+        /// <param name="instances">
+        /// The instance to update.
+        /// </param>
+        /// <returns>
+        /// A task that will complete when the update has finished.
+        /// </returns>
+        public async Task UpdateAsync(ICollection<T> instances)
+        {
+            if (instances == null)
+            {
+                throw new ArgumentNullException("instances");
+            }
+
+            IList<JObject> values = new List<JObject>();
+            MobileServiceSerializer serializer = this.MobileServiceClient.Serializer;
+
+            foreach (T instance in instances)
+            {
+                JObject value = serializer.Serialize(instance) as JObject;
+
+                string unused;
+                value = MobileServiceSerializer.RemoveSystemProperties(value, out unused, MobileServiceSystemProperties.Version);
+                values.Add(value);
+            }
+
+            JToken updatedValues = await TransformHttpException(serializer, () => this.UpdateAsync(values, MobileServiceFeatures.TypedTable));
+
+            serializer.Deserialize<T>(updatedValues as JArray, instances);
         }
 
         /// <summary>

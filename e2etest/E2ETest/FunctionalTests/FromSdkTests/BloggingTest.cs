@@ -50,6 +50,9 @@ namespace Microsoft.WindowsAzure.MobileServices.Test
 
         [DataMember(Name = "commentCount")]
         public int CommentCount { get; set; }
+
+        [DataMember]
+        public byte[] Version { get; set; }
     }
 
     [Tag("Blog")]
@@ -119,6 +122,40 @@ namespace Microsoft.WindowsAzure.MobileServices.Test
 
             await commentTable.InsertAsync(comments);
             Assert.IsFalse(comments.Any(c => string.IsNullOrWhiteSpace(c.Id)));
+        }
+
+        [AsyncTestMethod]
+        public async Task BulkUpdateComments()
+        {
+            IMobileServiceClient client = GetClient();
+            IMobileServiceTable<BlogPost> postTable = client.GetTable<BlogPost>();
+            IMobileServiceTable<BlogComment> commentTable = client.GetTable<BlogComment>();
+
+            // Add a few posts and a comment
+            Log("Adding post");
+            BlogPost post = new BlogPost { Title = "Windows 8" };
+            await postTable.InsertAsync(post);
+            IList<BlogComment> comments = new List<BlogComment>();
+
+            for (int i = 0; i < 5000; i++)
+            {
+                comments.Add(new BlogComment
+                {
+                    BlogPostId = post.Id,
+                    UserName = "Anonymous",
+                    Text = $"Beta runs great {i}"
+                });
+            }
+
+            await commentTable.InsertAsync(comments);
+            Assert.IsFalse(comments.Any(c => string.IsNullOrWhiteSpace(c.Id)));
+
+            foreach (var comment in comments)
+            {
+                comment.Text = comment.Text + "1";
+            }
+
+            await commentTable.UpdateAsync(comments);
         }
 
         [AsyncTestMethod]

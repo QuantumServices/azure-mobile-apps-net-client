@@ -317,11 +317,11 @@ namespace Microsoft.WindowsAzure.MobileServices
             string uriString = GetUri(this.TableName, null, null, true);
 
             MobileServiceSerializer serializer = this.MobileServiceClient.Serializer;
-            JToken body = serializer.Serialize(instances);
+            JToken content = serializer.Serialize(instances);
 
             return await this.TransformHttpException(async () =>
             {
-                MobileServiceHttpResponse response = await this.MobileServiceClient.HttpClient.RequestAsync(HttpMethod.Post, uriString, this.MobileServiceClient.CurrentUser, body.ToString(Formatting.None), true, features: this.Features | features);
+                MobileServiceHttpResponse response = await this.MobileServiceClient.HttpClient.RequestAsync(HttpMethod.Post, uriString, this.MobileServiceClient.CurrentUser, content.ToString(Formatting.None), true, features: this.Features | features);
                 return GetJTokenFromResponse(response);
             });
         }
@@ -359,6 +359,20 @@ namespace Microsoft.WindowsAzure.MobileServices
         }
 
         /// <summary>
+        /// Updates <paramref name="instances"/> in the table.
+        /// </summary>
+        /// <param name="instances">
+        /// The instances to update in the table.
+        /// </param>
+        /// <returns>
+        /// A task that will complete when the update finishes.
+        /// </returns>
+        public Task<JToken> UpdateAsync(IEnumerable<JObject> instances)
+        {
+            return this.UpdateAsync(instances, MobileServiceFeatures.UntypedTable);
+        }
+
+        /// <summary>
         /// Updates an <paramref name="instance"/> in the table.
         /// </summary>
         /// <param name="instance">
@@ -390,6 +404,45 @@ namespace Microsoft.WindowsAzure.MobileServices
             return await this.TransformHttpException(async () =>
             {
                 MobileServiceHttpResponse response = await this.MobileServiceClient.HttpClient.RequestAsync(patchHttpMethod, uriString, this.MobileServiceClient.CurrentUser, content, true, headers, this.Features | features);
+                return GetJTokenFromResponse(response);
+            });
+        }
+
+        /// <summary>
+        /// Updates <paramref name="instances"/> in the table.
+        /// </summary>
+        /// <param name="instances">
+        /// The instances to update in the table.
+        /// </param>
+        /// <param name="features">
+        /// Value indicating which features of the SDK are being used in this call. Useful for telemetry.
+        /// </param>
+        /// <returns>
+        /// A task that will complete when the update finishes.
+        /// </returns>
+        internal async Task<JToken> UpdateAsync(IEnumerable<JObject> instances, MobileServiceFeatures features)
+        {
+            if (instances == null)
+            {
+                throw new ArgumentNullException("instances");
+            }
+
+            IList<JObject> values = new List<JObject>();
+            foreach (JObject instance in instances)
+            {
+                string version;
+                JObject value = MobileServiceSerializer.RemoveSystemProperties(instance, out version, MobileServiceSystemProperties.Version);
+                values.Add(value);
+            }
+
+            string uriString = GetUri(this.TableName, null, null, true);
+
+            MobileServiceSerializer serializer = this.MobileServiceClient.Serializer;
+            string content = serializer.Serialize(values).ToString(Formatting.None);
+
+            return await this.TransformHttpException(async () =>
+            {
+                MobileServiceHttpResponse response = await this.MobileServiceClient.HttpClient.RequestAsync(patchHttpMethod, uriString, this.MobileServiceClient.CurrentUser, content, true, features: this.Features | features);
                 return GetJTokenFromResponse(response);
             });
         }

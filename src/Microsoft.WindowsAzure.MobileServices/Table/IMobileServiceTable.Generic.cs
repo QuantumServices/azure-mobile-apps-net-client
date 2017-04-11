@@ -176,6 +176,17 @@ namespace Microsoft.WindowsAzure.MobileServices
         Task UpdateAsync(T instance, IDictionary<string, string> parameters);
 
         /// <summary>
+        /// Updates instances in the table.
+        /// </summary>
+        /// <param name="instances">
+        /// The instances to update.
+        /// </param>
+        /// <returns>
+        /// A task that will complete when the update has finished.
+        /// </returns>
+        Task UpdateAsync(ICollection<T> instances);
+
+        /// <summary>
         /// Undeletes an <paramref name="instance"/> from the table. This requires the soft delete feature to be enabled on the Mobile Service. Visit <see href="http://go.microsoft.com/fwlink/?LinkId=507647">the link</see> for details.
         /// </summary>
         /// <param name="instance">The instance to undelete from the table.</param>
