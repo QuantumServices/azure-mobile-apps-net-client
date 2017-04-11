@@ -29,32 +29,30 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             this.store = store;
         }
 
-        public async virtual Task<MobileServiceTableOperation> PeekAsync(long prevSequenceId, MobileServiceTableKind tableKind, IEnumerable<string> tableNames)
+        //public async virtual Task<MobileServiceTableOperation> PeekAsync(long prevSequenceId, MobileServiceTableKind tableKind, IEnumerable<string> tableNames)
+        //{
+        //    MobileServiceTableQueryDescription query = CreateOperationQuery(prevSequenceId, tableKind, tableNames);
+        //    query.Top = 1;
+
+        //    JObject op = await this.store.FirstOrDefault(query);
+        //    if (op == null)
+        //    {
+        //        return null;
+        //    }
+
+        //    return MobileServiceTableOperation.Deserialize(op);
+        //}
+
+        public async virtual Task<MobileServiceTableBulkOperation> PeekAsync(long prevSequenceId, MobileServiceTableKind tableKind, IEnumerable<string> tableNames)
         {
-            MobileServiceTableQueryDescription query = CreateQuery();
+            MobileServiceTableQueryDescription query = CreateOperationQuery(prevSequenceId, tableKind, tableNames);
+            QueryResult result = await this.store.QueryAsync(query);
+            // get operations for the same table in a sequence
+            var tableName = result.Values.FirstOrDefault().Value<string>("tableName");
 
-            var tableKindNode = Compare(BinaryOperatorKind.Equal, "tableKind", (int)tableKind);
-            var sequenceNode = Compare(BinaryOperatorKind.GreaterThan, "sequence", prevSequenceId);
+            var operations = result.Values.TakeWhile(op => op.Value<string>("tableName") == tableName).Select(op => op as JObject);
 
-            query.Filter = new BinaryOperatorNode(BinaryOperatorKind.And, tableKindNode, sequenceNode);
-
-            if (tableNames != null && tableNames.Any())
-            {
-                BinaryOperatorNode nameInList = tableNames.Select(t => Compare(BinaryOperatorKind.Equal, "tableName", t))
-                                                          .Aggregate((first, second) => new BinaryOperatorNode(BinaryOperatorKind.Or, first, second));
-                query.Filter = new BinaryOperatorNode(BinaryOperatorKind.And, query.Filter, nameInList);
-            }
-
-            query.Ordering.Add(new OrderByNode(new MemberAccessNode(null, "sequence"), OrderByDirection.Ascending));
-            query.Top = 1;
-
-            JObject op = await this.store.FirstOrDefault(query);
-            if (op == null)
-            {
-                return null;
-            }
-
-            return MobileServiceTableOperation.Deserialize(op);
+            return MobileServiceTableBulkOperation.Deserialize(operations);
         }
 
         public long PendingOperations
@@ -255,6 +253,27 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
         private static MobileServiceTableQueryDescription CreateQuery()
         {
             var query = new MobileServiceTableQueryDescription(MobileServiceLocalSystemTables.OperationQueue);
+            return query;
+        }
+
+        private static MobileServiceTableQueryDescription CreateOperationQuery(long prevSequenceId, MobileServiceTableKind tableKind, IEnumerable<string> tableNames)
+        {
+            MobileServiceTableQueryDescription query = CreateQuery();
+
+            var tableKindNode = Compare(BinaryOperatorKind.Equal, "tableKind", (int)tableKind);
+            var sequenceNode = Compare(BinaryOperatorKind.GreaterThan, "sequence", prevSequenceId);
+
+            query.Filter = new BinaryOperatorNode(BinaryOperatorKind.And, tableKindNode, sequenceNode);
+
+            if (tableNames != null && tableNames.Any())
+            {
+                BinaryOperatorNode nameInList = tableNames.Select(t => Compare(BinaryOperatorKind.Equal, "tableName", t))
+                                                          .Aggregate((first, second) => new BinaryOperatorNode(BinaryOperatorKind.Or, first, second));
+                query.Filter = new BinaryOperatorNode(BinaryOperatorKind.And, query.Filter, nameInList);
+            }
+
+            query.Ordering.Add(new OrderByNode(new MemberAccessNode(null, "sequence"), OrderByDirection.Ascending));
+
             return query;
         }
 

@@ -126,7 +126,7 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
 
         private async Task ExecuteAllOperationsAsync(OperationBatch batch)
         {
-            MobileServiceTableOperation operation = await this.OperationQueue.PeekAsync(0, this.tableKind, this.tableNames);
+            MobileServiceTableOperation operation = (await this.OperationQueue.PeekAsync(0, this.tableKind, this.tableNames)).Operations.FirstOrDefault();
 
             // keep taking out operations and executing them until queue is empty or operation finds the bookmark or batch is aborted
             while (operation != null)
@@ -147,7 +147,7 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
                     }
 
                     // get next operation
-                    operation = await this.OperationQueue.PeekAsync(operation.Sequence, this.tableKind, this.tableNames);
+                    operation = (await this.OperationQueue.PeekAsync(operation.Sequence, this.tableKind, this.tableNames)).Operations.FirstOrDefault();
                 }
             }
         }

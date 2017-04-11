@@ -28,9 +28,9 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             return store.UpsertAsync(this.TableName, items, fromServer: false);
         }
 
-        protected override Task<IEnumerable<JToken>> OnExecuteAsync()
+        protected override Task<JToken> OnExecuteAsync()
         {
-            throw new NotImplementedException();
+            return this.Table.UpdateAsync(this.Items);
         }
     }
 }

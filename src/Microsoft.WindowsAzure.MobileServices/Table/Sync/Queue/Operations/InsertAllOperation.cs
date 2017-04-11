@@ -34,9 +34,12 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             await store.UpsertAsync(this.TableName, items, fromServer: false);
         }
 
-        protected override Task<IEnumerable<JToken>> OnExecuteAsync()
+        protected override Task<JToken> OnExecuteAsync()
         {
-            throw new NotImplementedException();
+            string unused;
+            // for insert operation version should not be sent
+            var items = this.Items.Select(item => MobileServiceSerializer.RemoveSystemProperties(item, out unused));
+            return this.Table.InsertAsync(items);
         }
     }
 }

@@ -79,17 +79,17 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
                 throw new MobileServiceInvalidOperationException("Operation must have an items associated with it.", request: null, response: null);
             }
 
-            IEnumerable<JToken> response = await OnExecuteAsync();
-            var result = response as IEnumerable<JObject>;
+            JToken response = await OnExecuteAsync();
+            var result = response as JArray;
             if (response != null && result == null)
             {
                 throw new MobileServiceInvalidOperationException("Mobile Service table operation returned an unexpected response.", request: null, response: null);
             }
 
-            return result;
+            return result.ToObject<IEnumerable<JObject>>();
         }
 
-        protected abstract Task<IEnumerable<JObject>> OnExecuteAsync();
+        protected abstract Task<JToken> OnExecuteAsync();
 
         /// <summary>
         /// Execute the operation on sync store
@@ -120,45 +120,47 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
 
         internal static MobileServiceTableBulkOperation Deserialize(IEnumerable<JObject> objects)
         {
-            //    if (objects == null)
-            //    {
-            //        return null;
-            //    }
+            if (objects == null)
+            {
+                return null;
+            }
 
-            //    // Use first object to determine the
-            //    JObject obj = objects.FirstOrDefault();
-            //    if (obj == null)
-            //    {
-            //        return null;
-            //    }
-            //    var kind = (MobileServiceTableOperationKind)obj.Value<int>("kind");
-            //    string tableName = obj.Value<string>("tableName");
-            //    var tableKind = (MobileServiceTableKind)obj.Value<int?>("tableKind").GetValueOrDefault();
-            //    string itemId = obj.Value<string>("itemId");
+            // Use first object to determine the operation kind, tableName and tableKind
+            JObject first = objects.FirstOrDefault();
+            if (first == null)
+            {
+                return null;
+            }
+            var kind = (MobileServiceTableOperationKind)first.Value<int>("kind");
+            string tableName = first.Value<string>("tableName");
+            var tableKind = (MobileServiceTableKind)first.Value<int?>("tableKind").GetValueOrDefault();
 
-            //    MobileServiceTableOperation operation = null;
-            //    switch (kind)
-            //    {
-            //        case MobileServiceTableOperationKind.Insert:
-            //            operation = new InsertOperation(tableName, tableKind, itemId); break;
-            //        case MobileServiceTableOperationKind.Update:
-            //            operation = new UpdateOperation(tableName, tableKind, itemId); break;
-            //        case MobileServiceTableOperationKind.Delete:
-            //            operation = new DeleteOperation(tableName, tableKind, itemId); break;
-            //    }
+            // make sure all the objects have the same operation kind, table name and table kind
+            if (objects.Any(obj => obj.Value<int>("kind") != (int)kind)
+                || objects.Any(obj => obj.Value<string>("tableName") != tableName)
+                || objects.Any(obj => (MobileServiceTableKind)obj.Value<int?>("tableKind").GetValueOrDefault() != tableKind))
+            {
+                throw new ArgumentException("All operations should be of the same kind, for the same table and table kind", "objects");
+            }
 
-            //    if (operation != null)
-            //    {
-            //        operation.Id = obj.Value<string>(MobileServiceSystemColumns.Id);
-            //        operation.Sequence = obj.Value<long?>("sequence").GetValueOrDefault();
-            //        operation.Version = obj.Value<long?>("version").GetValueOrDefault();
-            //        string itemJson = obj.Value<string>("item");
-            //        operation.Item = !String.IsNullOrEmpty(itemJson) ? JObject.Parse(itemJson) : null;
-            //        operation.State = (MobileServiceTableOperationState)obj.Value<int?>("state").GetValueOrDefault();
-            //    }
+            MobileServiceTableBulkOperation bulkOperation = null;
+            switch (kind)
+            {
+                case MobileServiceTableOperationKind.Insert:
+                    bulkOperation = new InsertAllOperation(tableName, tableKind, new List<string>()); break;
+                case MobileServiceTableOperationKind.Update:
+                    bulkOperation = new UpdateAllOperation(tableName, tableKind, new List<string>()); break;
+                    //case MobileServiceTableOperationKind.Delete:
+                    //operation = new DeleteOperation(tableName, tableKind, itemId); break;
+            }
 
-            //    return operation;
-            throw new NotImplementedException();
+            if (bulkOperation != null)
+            {
+                bulkOperation.Operations = objects.Select(op => MobileServiceTableOperation.Deserialize(op)).ToList();
+                bulkOperation.StartSequence = bulkOperation.Operations.Max(op => op.Sequence);
+            }
+
+            return bulkOperation;
         }
     }
 }
