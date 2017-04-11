@@ -32,7 +32,7 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             }
         }
 
-        public IEnumerable<MobileServiceTableOperation> Operations { get; internal set; }
+        public ICollection<MobileServiceTableOperation> Operations { get; internal set; }
         public long StartSequence { get; set; }
 
         public long ItemCount
@@ -89,7 +89,7 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             return result;
         }
 
-        protected abstract Task<IEnumerable<JToken>> OnExecuteAsync();
+        protected abstract Task<IEnumerable<JObject>> OnExecuteAsync();
 
         /// <summary>
         /// Execute the operation on sync store

@@ -12,7 +12,7 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
         public InsertAllOperation(string tableName, MobileServiceTableKind tableKind, IEnumerable<string> itemIds)
             : base(tableName, tableKind, itemIds)
         {
-            this.Operations = itemIds.Select(itemId => new InsertOperation(tableName, tableKind, itemId));
+            this.Operations = itemIds.Select<string, MobileServiceTableOperation>(itemId => new InsertOperation(tableName, tableKind, itemId)).ToList();
         }
 
         public override MobileServiceTableOperationKind Kind

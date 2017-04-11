@@ -508,12 +508,11 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
                     throw new MobileServiceLocalStoreException("Failed to perform operation on local store.", ex);
                 }
 
-                var currentConflictedOperations = new List<MobileServiceTableOperation>();
-
                 foreach (MobileServiceTableOperation existing in existingOperations)
                 {
                     MobileServiceTableOperation currentOperation = bulkOperation.Operations.Where(op => op.ItemId == existing.ItemId).Single();
                     existing.Collapse(currentOperation); // cancel either existing, new or both operation
+
                     // delete error for collapsed operation
                     await this.Store.DeleteAsync(MobileServiceLocalSystemTables.SyncErrors, existing.Id);
                     if (existing.IsCancelled) // if cancelled we delete it
@@ -524,17 +523,8 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
                     {
                         await this.opQueue.UpdateAsync(existing);
                     }
-
-                    if (currentOperation.IsCancelled || currentOperation.IsUpdated)
-                    {
-                        currentConflictedOperations.Add(currentOperation);
-                    }
                 }
 
-                bulkOperation.Operations = bulkOperation.Operations.ToList();
-                //.Where(op => op.)
-
-                // queue operations that are not cancelled
                 await this.opQueue.EnqueueAsync(bulkOperation);
             });
         }
