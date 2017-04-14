@@ -2,6 +2,7 @@
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -33,7 +34,6 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
         }
 
         public ICollection<MobileServiceTableOperation> Operations { get; internal set; }
-        public long StartSequence { get; set; }
 
         public long ItemCount
         {
@@ -98,11 +98,17 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
         /// <param name="item">The item to use for store operation</param>
         public abstract Task ExecuteLocalAsync(IMobileServiceLocalStore store, IEnumerable<JObject> items);
 
+        internal void SetOperationSequence(long startSquence)
+        {
+            foreach (var op in this.Operations)
+            {
+                op.Sequence = startSquence++;
+            }
+        }
+
         internal IEnumerable<JObject> Serialize()
         {
-            //Use the sequence as the start of the sequence
-            long sequence = this.StartSequence;
-            return Operations
+            return this.Operations
                 .Where(op => !op.IsCancelled)
                 .Select(op => new JObject()
                     {
@@ -113,7 +119,7 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
                         { "tableKind", (int)this.TableKind },
                         { "itemId", op.ItemId },
                         { "item", op.Item != null && this.SerializeItemToQueue ? op.Item.ToString(Formatting.None) : null},
-                        { "sequence", op.Sequence = sequence++ },
+                        { "sequence", op.Sequence },
                         { "version",  op.Version }
                     }).ToList();
         }
@@ -157,7 +163,6 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             if (bulkOperation != null)
             {
                 bulkOperation.Operations = objects.Select(op => MobileServiceTableOperation.Deserialize(op)).ToList();
-                bulkOperation.StartSequence = bulkOperation.Operations.Max(op => op.Sequence);
             }
 
             return bulkOperation;

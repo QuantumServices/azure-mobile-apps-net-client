@@ -159,7 +159,7 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
 
         public async Task EnqueueAsync(MobileServiceTableBulkOperation bulkOp)
         {
-            bulkOp.StartSequence = Interlocked.Increment(ref this.sequenceId);
+            bulkOp.SetOperationSequence(Interlocked.Increment(ref this.sequenceId));
             Interlocked.Exchange(ref this.sequenceId, this.sequenceId + bulkOp.ItemCount - 2);
             await this.store.UpsertAsync(MobileServiceLocalSystemTables.OperationQueue, bulkOp.Serialize(), false);
             Interlocked.Exchange(ref this.pendingOperations, this.pendingOperations + bulkOp.ItemCount);
