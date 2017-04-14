@@ -41,10 +41,22 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
         /// <param name="store">Instance of <see cref="IMobileServiceLocalStore"/></param>
         /// <param name="tableName">Name of the local table.</param>
         /// <param name="id">Id for the object to be deleted.</param>
-        /// <returns>A task that compltes when delete has been executed on local table.</returns>
+        /// <returns>A task that completes when delete has been executed on local table.</returns>
         public static Task DeleteAsync(this IMobileServiceLocalStore store, string tableName, string id)
         {
             return store.DeleteAsync(tableName, new[] { id });
+        }
+
+        /// <summary>
+        /// Deletes items with the specified ids in the local table.
+        /// </summary>
+        /// <param name="store">Instance of <see cref="IMobileServiceLocalStore"/></param>
+        /// <param name="tableName">Name of the local table.</param>
+        /// <param name="ids">Ids for the objects to be deleted.</param>
+        /// <returns>A task that completes when delete has been executed on local table.</returns>
+        public static Task DeleteAsync(this IMobileServiceLocalStore store, string tableName, IEnumerable<string> ids)
+        {
+            return store.DeleteAsync(tableName, ids);
         }
 
         /// <summary>
