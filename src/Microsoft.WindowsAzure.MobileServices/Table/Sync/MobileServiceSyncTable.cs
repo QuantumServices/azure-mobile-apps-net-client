@@ -130,6 +130,14 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             await this.syncContext.DeleteAsync(this.TableName, this.Kind, id, instance);
         }
 
+        public async Task DeleteAsync(IEnumerable<JObject> instances)
+        {
+            IEnumerable<string> ids = instances.Select(instance => EnsureIdIsString(instance));
+            instances = instances.Select(instance => RemoveSystemPropertiesKeepVersion(instance));
+
+            await this.syncContext.UpdateAsync(this.TableName, this.Kind, ids, instances);
+        }
+
         public Task<JObject> LookupAsync(string id)
         {
             return this.syncContext.LookupAsync(this.TableName, id);

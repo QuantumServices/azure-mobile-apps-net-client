@@ -185,6 +185,22 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             await this.ExecuteOperationAsync(operation, item);
         }
 
+        public async Task DeleteAsync(string tableName, MobileServiceTableKind tableKind, IEnumerable<string> ids, IEnumerable<JObject> items)
+        {
+            var operation = new DeleteAllOperation(tableName, tableKind, ids)
+            {
+                Table = await this.GetTable(tableName)
+            };
+
+            // items will be deleted from the store and put in the queue
+            foreach (var op in operation.Operations)
+            {
+                op.Item = items.Single(item => item.Value<string>(MobileServiceSystemColumns.Id) == op.ItemId);
+            }
+
+            await this.ExecuteBulkOperationAsync(operation, items);
+        }
+
         public async Task<JObject> LookupAsync(string tableName, string id)
         {
             await this.EnsureInitializedAsync();

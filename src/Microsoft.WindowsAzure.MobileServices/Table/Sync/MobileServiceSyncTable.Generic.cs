@@ -153,6 +153,13 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             return base.DeleteAsync(value);
         }
 
+        public Task DeleteAsync(IEnumerable<T> instances)
+        {
+            MobileServiceSerializer serializer = this.MobileServiceClient.Serializer;
+            IEnumerable<JObject> values = instances.Select(instance => serializer.Serialize(instance) as JObject);
+            return base.DeleteAsync(values);
+        }
+
         public async new Task<T> LookupAsync(string id)
         {
             JToken value = await base.LookupAsync(id);

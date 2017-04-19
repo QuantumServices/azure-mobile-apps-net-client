@@ -111,6 +111,17 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
         Task DeleteAsync(T instance);
 
         /// <summary>
+        /// Deletes <paramref name="instances"/> from the table.
+        /// </summary>
+        /// <param name="instances">
+        /// The instances to delete from the table.
+        /// </param>
+        /// <returns>
+        /// A task that will complete when the delete finishes.
+        /// </returns>
+        Task DeleteAsync(IEnumerable<T> instances);
+
+        /// <summary>
         /// Pulls all items that match the given query from the associated remote table.
         /// </summary>
         /// <param name="queryId">

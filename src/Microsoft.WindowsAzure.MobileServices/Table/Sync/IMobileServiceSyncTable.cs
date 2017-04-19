@@ -97,6 +97,17 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
         Task DeleteAsync(JObject instance);
 
         /// <summary>
+        /// Deletes <paramref name="instances"/> from the table.
+        /// </summary>
+        /// <param name="instances">
+        /// The instances to delete from the table.
+        /// </param>
+        /// <returns>
+        /// A task that will complete when the delete finishes.
+        /// </returns>
+        Task DeleteAsync(IEnumerable<JObject> instances);
+
+        /// <summary>
         /// Executes a lookup against a table.
         /// </summary>
         /// <param name="id">
