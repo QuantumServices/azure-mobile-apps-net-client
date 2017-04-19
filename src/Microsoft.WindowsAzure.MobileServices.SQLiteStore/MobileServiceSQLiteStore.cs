@@ -265,7 +265,7 @@ namespace Microsoft.WindowsAzure.MobileServices.SQLiteStore
         /// <param name="tableName">Name of the local table.</param>
         /// <param name="ids">A list of ids of the items to be deleted</param>
         /// <returns>A task that completes when delete query has executed.</returns>
-        public override Task DeleteAsync(string tableName, IEnumerable<string> ids)
+        public override async Task DeleteAsync(string tableName, IEnumerable<string> ids)
         {
             if (tableName == null)
             {
@@ -278,33 +278,39 @@ namespace Microsoft.WindowsAzure.MobileServices.SQLiteStore
 
             this.EnsureInitialized();
 
-            string idRange = String.Join(",", ids.Select((_, i) => "@id" + i));
+            int batchSize = ValidateQueryBatchSize(ids.Count());
 
-            string sql = string.Format("DELETE FROM {0} WHERE {1} IN ({2})",
-                                       SqlHelpers.FormatTableName(tableName),
-                                       MobileServiceSystemColumns.Id,
-                                       idRange);
-
-            var parameters = new Dictionary<string, object>();
-
-            int j = 0;
-            foreach (string id in ids)
+            // split a bigger look up query into smaller batches
+            foreach (var batch in ids.Split(maxLength: batchSize))
             {
-                parameters.Add("@id" + (j++), id);
-            }
+                string idRange = String.Join(",", batch.Select((_, i) => "@id" + i));
 
-            return this.operationSemaphore.WaitAsync()
-               .ContinueWith(t =>
-               {
-                   try
+                string sql = string.Format("DELETE FROM {0} WHERE {1} IN ({2})",
+                                           SqlHelpers.FormatTableName(tableName),
+                                           MobileServiceSystemColumns.Id,
+                                           idRange);
+
+                var parameters = new Dictionary<string, object>();
+
+                int j = 0;
+                foreach (string id in batch)
+                {
+                    parameters.Add("@id" + (j++), id);
+                }
+
+                await this.operationSemaphore.WaitAsync()
+                   .ContinueWith(t =>
                    {
-                       this.ExecuteNonQueryInternal(sql, parameters);
-                   }
-                   finally
-                   {
-                       this.operationSemaphore.Release();
-                   }
-               });
+                       try
+                       {
+                           this.ExecuteNonQueryInternal(sql, parameters);
+                       }
+                       finally
+                       {
+                           this.operationSemaphore.Release();
+                       }
+                   });
+            }
         }
 
         /// <summary>
