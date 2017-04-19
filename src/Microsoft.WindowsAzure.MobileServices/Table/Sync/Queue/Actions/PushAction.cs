@@ -126,12 +126,12 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
 
         private async Task ExecuteAllOperationsAsync(OperationBatch batch)
         {
-            MobileServiceTableOperation operation = (await this.OperationQueue.PeekAsync(0, this.tableKind, this.tableNames)).Operations.FirstOrDefault();
+            MobileServiceTableBulkOperation operation = await this.OperationQueue.PeekAllAsync(0, this.tableKind, this.tableNames);
 
             // keep taking out operations and executing them until queue is empty or operation finds the bookmark or batch is aborted
             while (operation != null)
             {
-                using (await this.OperationQueue.LockItemAsync(operation.ItemId, this.CancellationToken))
+                using (await this.OperationQueue.LockItemsAsync(operation.ItemIds, this.CancellationToken))
                 {
                     bool success = await this.ExecuteOperationAsync(operation, batch);
 
@@ -143,11 +143,12 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
                     if (success)
                     {
                         // we successfuly executed an operation so remove it from queue
-                        await this.OperationQueue.DeleteAsync(operation.Id, operation.Version);
+                        await this.OperationQueue.DeleteAsync(operation.Operations.Select(op => new Tuple<string, long>(op.Id, op.Version)));
                     }
 
+                    long currentSequence = operation.Operations.Max(op => op.Sequence);
                     // get next operation
-                    operation = (await this.OperationQueue.PeekAsync(operation.Sequence, this.tableKind, this.tableNames)).Operations.FirstOrDefault();
+                    operation = await this.OperationQueue.PeekAllAsync(operation.Operations.Max(op => op.Sequence), this.tableKind, this.tableNames);
                 }
             }
         }
@@ -198,7 +199,7 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             // save the result if ExecuteTableOperation did not throw
             if (error == null && result.IsValidItem() && operation.CanWriteResultToStore)
             {
-                await TryStoreOperation(() => this.Store.UpsertAsync(operation.TableName, result, fromServer: true), batch, "Failed to update the item in the local store.");
+                await TryStoreOperation(() => this.Store.UpsertAsync(operation.TableName, new List<JObject>() { result }, fromServer: true), batch, "Failed to update the item in the local store.");
             }
             else if (error != null)
             {
@@ -231,10 +232,104 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             return success;
         }
 
+        private async Task<bool> ExecuteOperationAsync(MobileServiceTableBulkOperation bulkOperation, OperationBatch batch)
+        {
+            if (bulkOperation.Operations.All(op => op.IsCancelled) || this.CancellationToken.IsCancellationRequested)
+            {
+                return false;
+            }
+
+            bulkOperation.Table = await this.context.GetTable(bulkOperation.TableName);
+            await this.LoadOperationItems(bulkOperation, batch);
+
+            if (this.CancellationToken.IsCancellationRequested)
+            {
+                return false;
+            }
+
+            await TryUpdateOperationState(bulkOperation, MobileServiceTableOperationState.Attempted, batch);
+
+            // strip out system properties before executing the operation
+            foreach (var op in bulkOperation.Operations)
+            {
+                op.Item = MobileServiceSyncTable.RemoveSystemPropertiesKeepVersion(op.Item);
+            }
+
+            IEnumerable<JObject> results = null;
+            Exception error = null;
+            try
+            {
+                results = await batch.SyncHandler.ExecuteTableOperationAsync(bulkOperation);
+            }
+            catch (Exception ex)
+            {
+                error = ex;
+            }
+
+            if (error != null)
+            {
+                await TryUpdateOperationState(bulkOperation, MobileServiceTableOperationState.Failed, batch);
+
+                if (TryAbortBatch(batch, error))
+                {
+                    // there is no error to save in sync error and no result to capture
+                    // this operation will be executed again next time the push happens
+                    return false;
+                }
+            }
+
+            // save the result if ExecuteTableOperation did not throw
+            if (error == null && results.All(result => result.IsValidItem()) && bulkOperation.CanWriteResultToStore)
+            {
+                await TryStoreOperation(() => this.Store.UpsertAsync(bulkOperation.TableName, results, fromServer: true), batch, "Failed to update the item in the local store.");
+            }
+            else if (error != null)
+            {
+                HttpStatusCode? statusCode = null;
+                string rawResult = null;
+                JToken result = null;
+                var iox = error as MobileServiceInvalidOperationException;
+                if (iox != null && iox.Response != null)
+                {
+                    statusCode = iox.Response.StatusCode;
+                    Tuple<string, JToken> content = await MobileServiceTable.ParseContent(iox.Response, this.client.SerializerSettings);
+                    rawResult = content.Item1;
+                    result = content.Item2.ValidItemOrNull();
+                }
+                // TODO: fix this to get all the errors
+                var syncError = new MobileServiceTableOperationError(bulkOperation.Operations.First().Id,
+                                                                        bulkOperation.Operations.First().Version,
+                                                                        bulkOperation.Kind,
+                                                                        statusCode,
+                                                                        bulkOperation.TableName,
+                                                                        bulkOperation.Operations.First().Item,
+                                                                        rawResult,
+                                                                        result?.First as JObject)
+                {
+                    TableKind = this.tableKind,
+                    Context = this.context
+                };
+                await batch.AddSyncErrorAsync(syncError);
+            }
+
+            bool success = error == null;
+            return success;
+        }
+
         private async Task TryUpdateOperationState(MobileServiceTableOperation operation, MobileServiceTableOperationState state, OperationBatch batch)
         {
             operation.State = state;
             await TryStoreOperation(() => this.OperationQueue.UpdateAsync(operation), batch, "Failed to update operation in the local store.");
+        }
+
+        private async Task TryUpdateOperationState(MobileServiceTableBulkOperation bulkOperation, MobileServiceTableOperationState state, OperationBatch batch)
+        {
+            foreach (var op in bulkOperation.Operations)
+            {
+                op.State = state;
+            }
+
+            await TryStoreOperation(() => this.OperationQueue.UpdateAsync(bulkOperation), batch, "Failed to update bulk operation in the local store.");
         }
 
         private async Task LoadOperationItem(MobileServiceTableOperation operation, OperationBatch batch)
@@ -246,6 +341,23 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
                 {
                     operation.Item = await this.Store.LookupAsync(operation.TableName, operation.ItemId) as JObject;
                 }, batch, "Failed to read the item from local store.");
+            }
+        }
+
+        private async Task LoadOperationItems(MobileServiceTableBulkOperation bulkOperation, OperationBatch batch)
+        {
+            // read the items from the store if any of the items in the operation are null
+            if (bulkOperation.Items.Any(op => op == null))
+            {
+                await TryStoreOperation(async () =>
+                {
+                    IEnumerable<JObject> items = await this.Store.LookupAsync(bulkOperation.TableName, bulkOperation.ItemIds);
+
+                    foreach (var op in bulkOperation.Operations)
+                    {
+                        op.Item = items.Single(item => item.Value<string>(MobileServiceSystemColumns.Id) == op.ItemId);
+                    }
+                }, batch, "Failed to read items from the local store.");
             }
         }
 

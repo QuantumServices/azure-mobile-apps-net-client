@@ -13,6 +13,7 @@ using Microsoft.WindowsAzure.MobileServices.Query;
 using Microsoft.WindowsAzure.MobileServices.Sync;
 using Moq;
 using Newtonsoft.Json.Linq;
+using System;
 
 namespace Microsoft.WindowsAzure.MobileServices.Test.Unit.Table.Sync.Queue.Actions
 {
@@ -135,6 +136,17 @@ namespace Microsoft.WindowsAzure.MobileServices.Test.Unit.Table.Sync.Queue.Actio
             await this.TestExecuteAsync(op, result, status);
         }
 
+        private async Task TestResultSave(MobileServiceTableBulkOperation op, HttpStatusCode? status, IEnumerable<string> resultIds, bool saved)
+        {
+            var results = resultIds.Select(resultId => new JObject() { { "id", resultId } });
+            if (saved)
+            {
+                this.store.Setup(s => s.UpsertAsync("table", It.Is<JObject[]>(list => list.Any(o => results.Any(result => result.Value<string>("id") == o.Value<string>("id")))), true))
+                          .Returns(Task.FromResult(0));
+            }
+            await this.TestExecuteAsync(op, results, status);
+        }
+
         private async Task TestExecuteAsync(MobileServiceTableOperation op, JObject result, HttpStatusCode? errorCode)
         {
             op.Sequence = 1;
@@ -162,6 +174,54 @@ namespace Microsoft.WindowsAzure.MobileServices.Test.Unit.Table.Sync.Queue.Actio
             if (errorCode == null)
             {
                 this.opQueue.Setup(q => q.DeleteAsync(It.IsAny<string>(), It.IsAny<long>())).Returns(Task.FromResult(true));
+            }
+            // loads sync errors
+            string syncError = @"[]";
+            this.store.Setup(s => s.ReadAsync(It.Is<MobileServiceTableQueryDescription>(q => q.TableName == MobileServiceLocalSystemTables.SyncErrors))).Returns(Task.FromResult(JToken.Parse(syncError)));
+            // calls push complete
+            this.handler.Setup(h => h.OnPushCompleteAsync(It.IsAny<MobileServicePushCompletionResult>())).Returns(Task.FromResult(0))
+                        .Callback<MobileServicePushCompletionResult>(r =>
+                        {
+                            Assert.AreEqual(r.Status, MobileServicePushStatus.Complete);
+                            Assert.AreEqual(r.Errors.Count(), 0);
+                        });
+            // deletes the errors
+            this.store.Setup(s => s.DeleteAsync(It.Is<MobileServiceTableQueryDescription>(q => q.TableName == MobileServiceLocalSystemTables.SyncErrors))).Returns(Task.FromResult(0));
+
+            await this.action.ExecuteAsync();
+
+            this.store.VerifyAll();
+            this.opQueue.VerifyAll();
+            this.handler.VerifyAll();
+
+            await action.CompletionTask;
+        }
+
+        private async Task TestExecuteAsync(MobileServiceTableBulkOperation bulkOp, IEnumerable<JObject> result, HttpStatusCode? errorCode)
+        {
+            // picks up the operation
+            this.opQueue.Setup(q => q.PeekAllAsync(0, MobileServiceTableKind.Table, It.IsAny<IEnumerable<string>>())).Returns(() => Task.FromResult(bulkOp));
+            this.opQueue.Setup(q => q.PeekAllAsync(bulkOp.Operations.Max(op => op.Sequence), MobileServiceTableKind.Table, It.IsAny<IEnumerable<string>>())).Returns(() => Task.FromResult<MobileServiceTableBulkOperation>(null));
+
+            // executes the operation via handler
+            if (errorCode == null)
+            {
+                this.handler.Setup(h => h.ExecuteTableOperationAsync(bulkOp)).Returns(Task.FromResult(result));
+            }
+            else
+            {
+                this.handler.Setup(h => h.ExecuteTableOperationAsync(bulkOp))
+                            .Throws(new MobileServiceInvalidOperationException("",
+                                                                               null,
+                                                                               new HttpResponseMessage(errorCode.Value)
+                                                                               {
+                                                                                   Content = new StringContent(result.ToString())
+                                                                               }));
+            }
+            // removes the operation from queue only if there is no error
+            if (errorCode == null)
+            {
+                this.opQueue.Setup(q => q.DeleteAsync(It.IsAny<IEnumerable<Tuple<string, long>>>())).Returns(Task.FromResult(true));
             }
             // loads sync errors
             string syncError = @"[]";

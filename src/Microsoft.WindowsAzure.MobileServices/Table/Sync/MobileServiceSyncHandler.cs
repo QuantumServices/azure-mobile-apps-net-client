@@ -3,6 +3,7 @@
 // ----------------------------------------------------------------------------
 
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 
@@ -31,6 +32,16 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
         public virtual Task<JObject> ExecuteTableOperationAsync(IMobileServiceTableOperation operation)
         {
             return operation.ExecuteAsync();
+        }
+
+        /// <summary>
+        /// A method that is called to execute a bulk table operation against remote table.
+        /// </summary>
+        /// <param name="bulkOperation">Instance of <see cref="IMobileServiceTableBulkOperation"/> that represents a remote bulk table operation.</param>
+        /// <returns>Task that completes when operation has been executed and errors have been handled.</returns>
+        public virtual Task<IEnumerable<JObject>> ExecuteTableOperationAsync(IMobileServiceTableBulkOperation bulkOperation)
+        {
+            return bulkOperation.ExecuteAsync();
         }
     }
 }
