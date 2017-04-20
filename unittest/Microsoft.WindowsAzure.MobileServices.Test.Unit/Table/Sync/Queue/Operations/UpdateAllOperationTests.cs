@@ -38,7 +38,7 @@ namespace Microsoft.WindowsAzure.MobileServices.Test.Unit.Table.Sync.Queue.Opera
                 items.Add(item);
             }
             await this.operation.ExecuteLocalAsync(store.Object, items);
-            store.Verify(s => s.UpsertAsync("test", It.IsIn<IEnumerable<JObject>>(items), false), Times.Once());
+            store.Verify(s => s.UpsertAsync("test", items, false), Times.Once());
         }
     }
 }
