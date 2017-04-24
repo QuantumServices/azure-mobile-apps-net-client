@@ -154,6 +154,17 @@ namespace Microsoft.WindowsAzure.MobileServices
         Task<JToken> DeleteAsync(JObject instance, IDictionary<string, string> parameters);
 
         /// <summary>
+        /// Deletes <paramref name="instances"/> from the table.
+        /// </summary>
+        /// <param name="instances">
+        /// The instances to delete from the table.
+        /// </param>
+        /// <returns>
+        /// A task that will complete when the delete finishes.
+        /// </returns>
+        Task<JToken> DeleteAsync(IEnumerable<JObject> instances);
+
+        /// <summary>
         /// Undeletes an <paramref name="instance"/> from the table. This requires the soft delete feature to be enabled on the Mobile Service. Visit <see href="http://go.microsoft.com/fwlink/?LinkId=507647">the link</see> for details.
         /// </summary>
         /// <param name="instance">The instance to undelete from the table.</param>

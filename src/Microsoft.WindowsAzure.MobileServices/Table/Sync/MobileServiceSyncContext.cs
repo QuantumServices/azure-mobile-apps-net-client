@@ -193,10 +193,18 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             };
 
             // items will be deleted from the store and put in the queue
-            foreach (var op in operation.Operations)
+            //foreach (var op in operation.Operations)
+            //{
+            //    op.Item = items.Single(item => item.Value<string>(MobileServiceSystemColumns.Id) == op.ItemId);
+            //}
+
+            operation.Operations = items.Select<JObject, MobileServiceTableOperation>(item =>
             {
-                op.Item = items.Single(item => item.Value<string>(MobileServiceSystemColumns.Id) == op.ItemId);
-            }
+                return new DeleteOperation(tableName, tableKind, item.Value<string>(MobileServiceSystemColumns.Id))
+                {
+                    Item = item
+                };
+            }).ToList();
 
             await this.ExecuteBulkOperationAsync(operation, items);
         }

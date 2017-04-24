@@ -177,13 +177,45 @@ namespace Microsoft.WindowsAzure.MobileServices.Test
         }
 
         [AsyncTestMethod]
-        private async Task TimedBulkSyncOfflineTest()
+        private async Task TimedBulkSyncOfflineTest1000()
         {
-            int[] recordNumber = new int[] { 1000, 3000 };
-            foreach (int record in recordNumber)
-            {
-                await BulkSyncOfflineTest(record);
-            }
+            await BulkSyncOfflineTest(1000);
+        }
+
+        [AsyncTestMethod]
+        private async Task TimedBulkSyncOfflineTest3000()
+        {
+            await BulkSyncOfflineTest(3000);
+        }
+
+        [AsyncTestMethod]
+        private async Task TimedBulkSyncOfflineTest5000()
+        {
+            await BulkSyncOfflineTest(5000);
+        }
+
+        [AsyncTestMethod]
+        private async Task TimedBulkSyncOfflineTest7000()
+        {
+            await BulkSyncOfflineTest(7000);
+        }
+
+        [AsyncTestMethod]
+        private async Task TimedBulkSyncOfflineTest10000()
+        {
+            await BulkSyncOfflineTest(10000);
+        }
+
+        [AsyncTestMethod]
+        private async Task TimedBulkSyncOfflineTest15000()
+        {
+            await BulkSyncOfflineTest(15000);
+        }
+
+        [AsyncTestMethod]
+        private async Task TimedBulkSyncOfflineTest30000()
+        {
+            await BulkSyncOfflineTest(30000);
         }
 
         [AsyncTestMethod]
@@ -774,6 +806,34 @@ namespace Microsoft.WindowsAzure.MobileServices.Test
                 else
                 {
                     Assert.Fail(string.Format("Items are different. Local: {0}; remote: {1}", items.First(), serverItem));
+                }
+
+                Log("Now deleting the items.");
+                sw.Restart();
+                await localTable.DeleteAsync(items);
+                sw.Stop();
+                Log("Items deleted, it took {0} ms for {1} items", sw.ElapsedMilliseconds, numRecords);
+
+                Log("Pushing new changes to the server");
+                sw.Restart();
+                await offlineReadyClient.SyncContext.PushAsync();
+                sw.Stop();
+                requestsSentToServer += batchSize;
+                Log("Push done, it took {0} ms. Verifying changes on the server", sw.ElapsedMilliseconds);
+                if (!validateRequestCount(requestsSentToServer))
+                {
+                    Assert.Fail(string.Format("Error, expected {0} requests to have been sent to the server", requestsSentToServer));
+                }
+
+                try
+                {
+                    requestsSentToServer++;
+                    await remoteTable.LookupAsync(items.First().Id);
+                    Assert.Fail("Error, item is present in the server");
+                }
+                catch (MobileServiceInvalidOperationException ex)
+                {
+                    Log("Ok, item is not in the server: {0}", ex.Message);
                 }
 
                 Log("Done");

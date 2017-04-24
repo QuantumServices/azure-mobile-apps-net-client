@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using Microsoft.WindowsAzure.MobileServices.Query;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Linq;
 
 namespace Microsoft.WindowsAzure.MobileServices
 {
@@ -505,6 +506,11 @@ namespace Microsoft.WindowsAzure.MobileServices
             return this.DeleteAsync(instance, null);
         }
 
+        public virtual Task<JToken> DeleteAsync(IEnumerable<JObject> instances)
+        {
+            return this.DeleteAsync(instances, MobileServiceFeatures.UntypedTable);
+        }
+
         /// <summary>
         /// Deletes an <paramref name="instance"/> from the table.
         /// </summary>
@@ -554,6 +560,26 @@ namespace Microsoft.WindowsAzure.MobileServices
             return await TransformHttpException(async () =>
             {
                 MobileServiceHttpResponse response = await this.MobileServiceClient.HttpClient.RequestAsync(HttpMethod.Delete, uriString, this.MobileServiceClient.CurrentUser, null, false, headers, this.Features | features);
+                return GetJTokenFromResponse(response);
+            });
+        }
+
+        internal async Task<JToken> DeleteAsync(IEnumerable<JObject> instances, MobileServiceFeatures features)
+        {
+            if (instances == null)
+            {
+                throw new ArgumentNullException("instances");
+            }
+
+            var ids = instances.Select(instance => MobileServiceSerializer.GetId(instance));
+            string uriString = GetUri(this.TableName, bulkOperation: true);
+
+            MobileServiceSerializer serializer = this.MobileServiceClient.Serializer;
+            string content = serializer.Serialize(ids).ToString(Formatting.None);
+
+            return await TransformHttpException(async () =>
+            {
+                MobileServiceHttpResponse response = await this.MobileServiceClient.HttpClient.RequestAsync(HttpMethod.Delete, uriString, this.MobileServiceClient.CurrentUser, content, false, features: this.Features | features);
                 return GetJTokenFromResponse(response);
             });
         }

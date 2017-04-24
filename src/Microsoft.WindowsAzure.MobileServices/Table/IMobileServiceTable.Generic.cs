@@ -230,6 +230,17 @@ namespace Microsoft.WindowsAzure.MobileServices
         Task DeleteAsync(T instance, IDictionary<string, string> parameters);
 
         /// <summary>
+        /// Delete instances from the table.
+        /// </summary>
+        /// <param name="instances">
+        /// The instances to delete.
+        /// </param>
+        /// <returns>
+        /// A task that will complete when the delete has finished.
+        /// </returns>
+        Task DeleteAsync(ICollection<T> instances);
+
+        /// <summary>
         /// Creates a query for the current table.
         /// </summary>
         /// <returns>

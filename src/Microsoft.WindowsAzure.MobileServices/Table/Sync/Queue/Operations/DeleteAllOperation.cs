@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
+using System.Net;
 
 namespace Microsoft.WindowsAzure.MobileServices.Sync
 {
@@ -44,9 +45,21 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             return store.DeleteAsync(this.TableName, this.ItemIds);
         }
 
-        protected override Task<JToken> OnExecuteAsync()
+        protected override async Task<JToken> OnExecuteAsync()
         {
-            throw new NotImplementedException();
+            try
+            {
+                return await this.Table.DeleteAsync(this.Items);
+            }
+            catch (MobileServiceInvalidOperationException ex)
+            {
+                // if the item is already deleted then local store is in-sync with the server state
+                if (ex.Response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    return null;
+                }
+                throw;
+            }
         }
     }
 }

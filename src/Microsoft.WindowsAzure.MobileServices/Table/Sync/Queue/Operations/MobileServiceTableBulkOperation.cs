@@ -86,6 +86,9 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
                 throw new MobileServiceInvalidOperationException("Mobile Service table operation returned an unexpected response.", request: null, response: null);
             }
 
+            // delete returns an empty result
+            result = this.Kind == MobileServiceTableOperationKind.Delete ? new JArray() : result;
+
             return result.ToObject<IEnumerable<JObject>>();
         }
 
@@ -156,8 +159,8 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
                     bulkOperation = new InsertAllOperation(tableName, tableKind, new List<string>()); break;
                 case MobileServiceTableOperationKind.Update:
                     bulkOperation = new UpdateAllOperation(tableName, tableKind, new List<string>()); break;
-                    //case MobileServiceTableOperationKind.Delete:
-                    //operation = new DeleteOperation(tableName, tableKind, itemId); break;
+                case MobileServiceTableOperationKind.Delete:
+                    bulkOperation = new DeleteAllOperation(tableName, tableKind, new List<string>()); break;
             }
 
             if (bulkOperation != null)

@@ -332,6 +332,33 @@ namespace Microsoft.WindowsAzure.MobileServices
         }
 
         /// <summary>
+        /// Deletes instances from the table.
+        /// </summary>
+        /// <param name="instances">
+        /// The instances to delete.
+        /// </param>
+        /// <returns>
+        /// A task that will complete when the delete has finished.
+        /// </returns>
+        public async Task DeleteAsync(ICollection<T> instances)
+        {
+            if (instances == null)
+            {
+                throw new ArgumentNullException("instances");
+            }
+
+            MobileServiceSerializer serializer = this.MobileServiceClient.Serializer;
+            IEnumerable<JObject> values = instances.Select(instance => serializer.Serialize(instance) as JObject);
+
+            await this.TransformHttpException(serializer, () => this.DeleteAsync(values));
+
+            foreach (T instance in instances)
+            {
+                serializer.SetIdToDefault(instance);
+            }
+        }
+
+        /// <summary>
         /// Get an instance from the table by its id.
         /// </summary>
         /// <param name="id">
