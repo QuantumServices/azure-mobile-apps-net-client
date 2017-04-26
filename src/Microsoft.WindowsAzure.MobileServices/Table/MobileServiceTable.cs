@@ -729,16 +729,22 @@ namespace Microsoft.WindowsAzure.MobileServices
         {
             Debug.Assert(!string.IsNullOrEmpty(tableName));
 
-            string uriPath = MobileServiceUrlBuilder.CombinePaths(TableRouteSeparatorName, tableName);
+            string uriPath = string.Empty;
+
+            if (bulkOperation)
+            {
+                uriPath = MobileServiceUrlBuilder.CombinePaths(TableRouteSeparatorName, TableBulkOperationName);
+                uriPath = MobileServiceUrlBuilder.CombinePaths(uriPath, tableName);
+            }
+            else
+            {
+                uriPath = MobileServiceUrlBuilder.CombinePaths(TableRouteSeparatorName, tableName);
+            }
+
             if (id != null && !bulkOperation)
             {
                 string idString = Uri.EscapeDataString(string.Format(CultureInfo.InvariantCulture, "{0}", id));
                 uriPath = MobileServiceUrlBuilder.CombinePaths(uriPath, idString);
-            }
-
-            if (bulkOperation)
-            {
-                uriPath = MobileServiceUrlBuilder.CombinePaths(uriPath, TableBulkOperationName);
             }
 
             string queryString = MobileServiceUrlBuilder.GetQueryString(parameters);
