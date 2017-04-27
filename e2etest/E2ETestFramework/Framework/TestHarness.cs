@@ -31,6 +31,7 @@ namespace Microsoft.WindowsAzure.MobileServices.TestFramework
         }
 
         private TestRun testRun;
+
         /// <summary>
         /// Gets the list of test groups which contain TestMethods to execute.
         /// </summary>
@@ -89,7 +90,6 @@ namespace Microsoft.WindowsAzure.MobileServices.TestFramework
             }
             System.Diagnostics.Debug.WriteLine(message);
             this.Reporter.Log(message);
-
         }
 
         /// <summary>
@@ -153,7 +153,7 @@ namespace Microsoft.WindowsAzure.MobileServices.TestFramework
             // Enumerators that track the current group and method to execute
             // (which allows reentrancy into the test loop below to resume at
             // the correct location).
-            IEnumerator<TestGroup> groups = this.Groups.OrderBy(g => g.Name).GetEnumerator();
+            IEnumerator<TestGroup> groups = this.Groups.OrderBy(g => g.Name).Where(g => g.Name == "OfflineTests").GetEnumerator();
             IEnumerator<TestMethod> methods = null;
 
             // Keep a reference to the current group so we can pass it to the
@@ -166,7 +166,7 @@ namespace Microsoft.WindowsAzure.MobileServices.TestFramework
 
             // The primary test loop is a "recursive" closure that will pass
             // itself as the continuation to async tests.
-            // 
+            //
             // Note: It's really important for performance to note that any
             // calls to testLoop only occur in the tail position.
             DateTime RunStartTime = DateTime.UtcNow;
@@ -197,13 +197,13 @@ namespace Microsoft.WindowsAzure.MobileServices.TestFramework
                             // Get the start time for individual tests
                             DateTime testStartTime = DateTime.UtcNow;
 
-                            // Record the test result, upload the test log as a blob and clear the 
+                            // Record the test result, upload the test log as a blob and clear the
                             // log for next test
                             Func<Task> recordTestResult = async () =>
                             {
                                 if (!Settings.ManualMode)
                                 {
-                                     // upload test log to sunlight blob container
+                                    // upload test log to sunlight blob container
                                     string relativeFilePath = this.Platform + "/" + Guid.NewGuid().ToString() + ".txt";
 
                                     string blobStorageSasUrl = GetBlobStorageSasUrl(this.Settings.Custom["TestFrameworkStorageContainerUrl"],
@@ -259,7 +259,6 @@ namespace Microsoft.WindowsAzure.MobileServices.TestFramework
                                     }
                                 });
                         }
-
                     }
                     else if (groups.MoveNext())
                     {

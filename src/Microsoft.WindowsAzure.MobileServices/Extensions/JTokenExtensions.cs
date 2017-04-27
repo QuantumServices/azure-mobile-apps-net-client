@@ -26,6 +26,17 @@ namespace Microsoft.WindowsAzure.MobileServices
         }
 
         /// <summary>
+        /// Determines if a JToken has valid items
+        /// </summary>
+        /// <param name="items">The JToken to check.</param>
+        /// <returns>True if they are valid items, False otherwise.</returns>
+        public static bool IsValidItems(this JToken items)
+        {
+            var objs = items as JArray;
+            return objs != null && objs.All(obj => HasId(obj as JObject));
+        }
+
+        /// <summary>
         /// If specified JToken is a valid item then returns it otherwise returns null
         /// </summary>
         /// <param name="item">The jtoken to check.</param>
@@ -33,6 +44,16 @@ namespace Microsoft.WindowsAzure.MobileServices
         public static JObject ValidItemOrNull(this JToken item)
         {
             return IsValidItem(item) ? (JObject)item : null;
+        }
+
+        /// <summary>
+        /// If specified JToken are valid items then returns it otherwise returns null
+        /// </summary>
+        /// <param name="items">The jtoken to check.</param>
+        /// <returns><paramref name="items"/> as JArray if it is valid, othewise null.</returns>
+        public static JArray ValidItemsOrNull(this JToken items)
+        {
+            return IsValidItems(items) ? (JArray)items : null;
         }
 
         private static bool HasId(JObject obj)

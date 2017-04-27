@@ -183,42 +183,6 @@ namespace Microsoft.WindowsAzure.MobileServices.Test
         }
 
         [AsyncTestMethod]
-        private async Task TimedBulkSyncOfflineTest3000()
-        {
-            await BulkSyncOfflineTest(3000);
-        }
-
-        [AsyncTestMethod]
-        private async Task TimedBulkSyncOfflineTest5000()
-        {
-            await BulkSyncOfflineTest(5000);
-        }
-
-        [AsyncTestMethod]
-        private async Task TimedBulkSyncOfflineTest7000()
-        {
-            await BulkSyncOfflineTest(7000);
-        }
-
-        [AsyncTestMethod]
-        private async Task TimedBulkSyncOfflineTest10000()
-        {
-            await BulkSyncOfflineTest(10000);
-        }
-
-        [AsyncTestMethod]
-        private async Task TimedBulkSyncOfflineTest15000()
-        {
-            await BulkSyncOfflineTest(15000);
-        }
-
-        [AsyncTestMethod]
-        private async Task TimedBulkSyncOfflineTest30000()
-        {
-            await BulkSyncOfflineTest(30000);
-        }
-
-        [AsyncTestMethod]
         private async Task ClientResolvesConflictsTest()
         {
             await CreateSyncConflict(true);
@@ -228,6 +192,12 @@ namespace Microsoft.WindowsAzure.MobileServices.Test
         private async Task PushFailsAfterConflictsTest()
         {
             await CreateSyncConflict(false);
+        }
+
+        [AsyncTestMethod]
+        private async Task ClientBulkResolvesConflictsTest()
+        {
+            await CreateBulkSyncConflict(true);
         }
 
         [AsyncTestMethod]
@@ -677,9 +647,54 @@ namespace Microsoft.WindowsAzure.MobileServices.Test
                 return Task.FromResult(0);
             }
 
-            public Task<IEnumerable<JObject>> ExecuteTableOperationAsync(IMobileServiceTableBulkOperation bulkOperation)
+            public async Task<IEnumerable<JObject>> ExecuteTableOperationAsync(IMobileServiceTableBulkOperation bulkOperation)
             {
-                return bulkOperation.ExecuteAsync();
+                MobileServiceBulkConflictException ex = null;
+                IEnumerable<JObject> result = null;
+                do
+                {
+                    ex = null;
+                    try
+                    {
+                        this.test.Log("Attempting to execute the operation");
+                        result = await bulkOperation.ExecuteAsync();
+                    }
+                    catch (MobileServiceBulkConflictException e)
+                    {
+                        ex = e;
+                    }
+
+                    if (ex != null)
+                    {
+                        this.test.Log("A MobileServicePreconditionFailedException was thrown, ex.Values = {0}", ex.Values.ToString(Newtonsoft.Json.Formatting.None));
+                        var serverItems = ex.Values;
+
+                        if (serverItems == null)
+                        {
+                            this.test.Log("Item not returned in the exception, trying to retrieve it from the server");
+                            //serverItem = (JObject)(await client.GetTable(bulkOperation.Table.TableName).LookupAsync((string)operation.Item["id"]));
+                        }
+
+                        var mergedItems = new List<JObject>();
+
+                        foreach (JObject serverItem in serverItems)
+                        {
+                            var clientItem = bulkOperation.Items.FirstOrDefault(item => item.Value<string>(MobileServiceSystemColumns.Id) == serverItem.Value<string>(MobileServiceSystemColumns.Id));
+                            var typedClientItem = clientItem.ToObject<T>();
+                            var typedServerItem = serverItem.ToObject<T>();
+                            var typedMergedItem = conflictResolution(typedClientItem, typedServerItem);
+
+                            var mergedItem = JObject.FromObject(typedMergedItem);
+                            mergedItem[MobileServiceSystemColumns.Version] = serverItem[MobileServiceSystemColumns.Version];
+                            mergedItems.Add(mergedItem);
+                        }
+
+                        this.test.Log("Merged the items, will try to resubmit the operation");
+                        bulkOperation.UpdateItems(mergedItems);
+                    }
+                } while (ex != null);
+
+                return result;
             }
         }
 
@@ -1073,6 +1088,135 @@ namespace Microsoft.WindowsAzure.MobileServices.Test
 
             Log("Cleaning up");
             await localTable.DeleteAsync(item);
+            Log("Local table cleaned up. Now sync'ing once more");
+            await offlineReadyClient.SyncContext.PushAsync();
+            Log("Done");
+            localStore.Dispose();
+            ClearStore();
+            if (!String.IsNullOrEmpty(errorMessage))
+            {
+                Assert.Fail(errorMessage);
+            }
+        }
+
+        private async Task CreateBulkSyncConflict(bool autoResolve)
+        {
+            ClearStore();
+            bool resolveConflictsOnClient = autoResolve;
+            DateTime now = DateTime.UtcNow;
+            int seed = now.Year * 10000 + now.Month * 100 + now.Day;
+            Log("Using random seed: {0}", seed);
+            Random rndGen = new Random(seed);
+
+            var offlineReadyClient = CreateClient();
+
+            var localStore = new MobileServiceSQLiteStore(StoreFileName);
+            Log("Defined the table on the local store");
+            localStore.DefineTable<OfflineReadyItem>();
+
+            ConflictResolvingSyncHandler<OfflineReadyItem>.ConflictResolution conflictHandlingPolicy;
+            conflictHandlingPolicy = (client, server) =>
+                    new OfflineReadyItem
+                    {
+                        Id = client.Id,
+                        Age = Math.Max(client.Age, server.Age),
+                        Date = client.Date > server.Date ? client.Date : server.Date,
+                        Flag = client.Flag || server.Flag,
+                        FloatingNumber = Math.Max(client.FloatingNumber, server.FloatingNumber),
+                        Name = client.Name
+                    };
+            conflictHandlingPolicy = (client, server) => server;
+            if (resolveConflictsOnClient)
+            {
+                var handler = new ConflictResolvingSyncHandler<OfflineReadyItem>(this, offlineReadyClient, conflictHandlingPolicy);
+                await offlineReadyClient.SyncContext.InitializeAsync(localStore, handler);
+            }
+            else
+            {
+                await offlineReadyClient.SyncContext.InitializeAsync(localStore);
+            }
+
+            Log("Initialized the store and sync context");
+
+            var localTable = offlineReadyClient.GetSyncTable<OfflineReadyItem>();
+            var remoteTable = offlineReadyClient.GetTable<OfflineReadyItem>();
+
+            await localTable.PurgeAsync();
+            Log("Removed all items from the local table");
+
+            var items = Enumerable.Range(0, 5).Select(i => new OfflineReadyItem(rndGen)).ToList();
+            await remoteTable.InsertAsync(items);
+            Log("Inserted {0} items to the remote store:", items.Count);
+
+            var itemIds = items.Select(item => item.Id);
+            var pullQuery = localTable.Where(item => itemIds.Contains(item.Id));
+            await localTable.PullAsync(null, pullQuery);
+
+            Log("Changing the items on the server");
+
+            foreach (var item in items.Take(2))
+            {
+                item.Age++;
+            }
+
+            await remoteTable.UpdateAsync(items.Take(2).ToList());
+            Log("Updated {0} items", items.Count);
+
+            var localItems = await localTable.ToListAsync();
+            localItems = localItems.Where(item => itemIds.Contains(item.Id)).ToList();
+
+            Log("Retrieved the items from the local table, now updating it");
+
+            foreach (var item in localItems)
+            {
+                item.Date = item.Date.AddDays(1);
+            }
+
+            await localTable.UpdateAsync(localItems);
+            Log("Updated the items on the local table");
+
+            Log("Now trying to pull changes from the server (will trigger a push)");
+            string errorMessage = string.Empty;
+            try
+            {
+                await localTable.PullAsync(null, pullQuery);
+                if (!autoResolve)
+                {
+                    errorMessage = "Error, pull (push) should have caused a conflict, but none happened.";
+                }
+                else
+                {
+                    foreach (var item in items.Take(2))
+                    {
+                        var localItem = localItems.First(local => local.Id == item.Id);
+                        var expectedMergedItem = conflictHandlingPolicy(localItem, item);
+                        var localMergedItem = await localTable.LookupAsync(item.Id);
+                        if (localMergedItem.Equals(expectedMergedItem))
+                        {
+                            Log("Item was merged correctly.");
+                        }
+                        else
+                        {
+                            errorMessage = string.Format("Error, item not merged correctly. Expected: {0}, Actual: {1}", expectedMergedItem, localMergedItem);
+                        }
+                    }
+                }
+            }
+            catch (MobileServicePushFailedException ex)
+            {
+                Log("Push exception: {0}", ex);
+                if (autoResolve)
+                {
+                    errorMessage = "Error, push should have succeeded.";
+                }
+                else
+                {
+                    Log("Expected exception was thrown.");
+                }
+            }
+
+            Log("Cleaning up");
+            await localTable.DeleteAsync(items);
             Log("Local table cleaned up. Now sync'ing once more");
             await offlineReadyClient.SyncContext.PushAsync();
             Log("Done");

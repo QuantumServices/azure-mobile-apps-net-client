@@ -109,6 +109,21 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             }
         }
 
+        public void UpdateItems(IEnumerable<JObject> items)
+        {
+            foreach (var item in items)
+            {
+                var operation = Operations.First(op => op.ItemId == item.Value<string>(MobileServiceSystemColumns.Id));
+                operation.Item = item;
+            }
+        }
+
+        public void ExcludeItems(IEnumerable<JObject> items)
+        {
+            var itemIds = items.Select(item => item.Value<string>(MobileServiceSystemColumns.Id));
+            this.Operations = Operations.Where(op => !ItemIds.Contains(op.ItemId)).ToList();
+        }
+
         internal IEnumerable<JObject> Serialize()
         {
             return this.Operations

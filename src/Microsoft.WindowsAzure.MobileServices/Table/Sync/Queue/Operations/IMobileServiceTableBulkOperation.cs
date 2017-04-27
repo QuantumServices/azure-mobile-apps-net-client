@@ -20,6 +20,11 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
         IMobileServiceTable Table { get; }
 
         /// <summary>
+        /// Items associated with this operation
+        /// </summary>
+        IEnumerable<JObject> Items { get; }
+
+        /// <summary>
         /// Executes the operation against remote table.
         /// </summary>
         Task<IEnumerable<JObject>> ExecuteAsync();
@@ -28,5 +33,17 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
         /// Abort the parent push operation.
         /// </summary>
         void AbortPush();
+
+        /// <summary>
+        /// Updates the items for this operation, does not update them in the table.
+        /// </summary>
+        /// <param name="items"></param>
+        void UpdateItems(IEnumerable<JObject> items);
+
+        /// <summary>
+        /// Excludes these items from from local and remote operation
+        /// </summary>
+        /// <param name="items"></param>
+        void ExcludeItems(IEnumerable<JObject> items);
     }
 }

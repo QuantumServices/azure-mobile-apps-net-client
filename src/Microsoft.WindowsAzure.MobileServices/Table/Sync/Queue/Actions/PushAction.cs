@@ -287,15 +287,16 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             {
                 HttpStatusCode? statusCode = null;
                 string rawResult = null;
-                JToken result = null;
-                var iox = error as MobileServiceInvalidOperationException;
+                JArray result = null;
+                var iox = error as MobileServiceInvalidBulkOperationException;
                 if (iox != null && iox.Response != null)
                 {
                     statusCode = iox.Response.StatusCode;
                     Tuple<string, JToken> content = await MobileServiceTable.ParseContent(iox.Response, this.client.SerializerSettings);
                     rawResult = content.Item1;
-                    result = content.Item2.ValidItemOrNull();
+                    result = content.Item2.ValidItemsOrNull();
                 }
+
                 // TODO: fix this to get all the errors
                 var syncError = new MobileServiceTableOperationError(bulkOperation.Operations.First().Id,
                                                                         bulkOperation.Operations.First().Version,
@@ -304,7 +305,7 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
                                                                         bulkOperation.TableName,
                                                                         bulkOperation.Operations.First().Item,
                                                                         rawResult,
-                                                                        result?.First as JObject)
+                                                                        result?.First() as JObject)
                 {
                     TableKind = this.tableKind,
                     Context = this.context

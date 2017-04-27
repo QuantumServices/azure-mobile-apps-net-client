@@ -47,6 +47,8 @@
     <Compile Include="Collections\MobileServiceCollectionEventArgs.cs" />
     <Compile Include="EnumValueAttribute.cs" />
     <Compile Include="Eventing\EventManagerExtensions.cs" />
+    <Compile Include="Exceptions\MobileServiceBulkConflictException.cs" />
+    <Compile Include="Exceptions\MobileServiceInvalidBulkOperationException.cs" />
     <Compile Include="Extensions\EnumerableExtensions.cs" />
     <Compile Include="Extensions\PlatformInformationExtensions.cs" />
     <Compile Include="Platform\PreserveAttribute.cs" />

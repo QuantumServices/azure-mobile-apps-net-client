@@ -320,7 +320,7 @@ namespace Microsoft.WindowsAzure.MobileServices
             MobileServiceSerializer serializer = this.MobileServiceClient.Serializer;
             JToken content = serializer.Serialize(instances);
 
-            return await this.TransformHttpException(async () =>
+            return await this.TransformHttpBulkException(async () =>
             {
                 MobileServiceHttpResponse response = await this.MobileServiceClient.HttpClient.RequestAsync(HttpMethod.Post, uriString, this.MobileServiceClient.CurrentUser, content.ToString(Formatting.None), true, features: this.Features | features);
                 return GetJTokenFromResponse(response);
@@ -441,7 +441,7 @@ namespace Microsoft.WindowsAzure.MobileServices
             MobileServiceSerializer serializer = this.MobileServiceClient.Serializer;
             string content = serializer.Serialize(values).ToString(Formatting.None);
 
-            return await this.TransformHttpException(async () =>
+            return await this.TransformHttpBulkException(async () =>
             {
                 MobileServiceHttpResponse response = await this.MobileServiceClient.HttpClient.RequestAsync(patchHttpMethod, uriString, this.MobileServiceClient.CurrentUser, content, true, features: this.Features | features);
                 return GetJTokenFromResponse(response);
@@ -577,7 +577,7 @@ namespace Microsoft.WindowsAzure.MobileServices
             MobileServiceSerializer serializer = this.MobileServiceClient.Serializer;
             string content = serializer.Serialize(ids).ToString(Formatting.None);
 
-            return await TransformHttpException(async () =>
+            return await TransformHttpBulkException(async () =>
             {
                 MobileServiceHttpResponse response = await this.MobileServiceClient.HttpClient.RequestAsync(HttpMethod.Delete, uriString, this.MobileServiceClient.CurrentUser, content, false, features: this.Features | features);
                 return GetJTokenFromResponse(response);
@@ -825,6 +825,42 @@ namespace Microsoft.WindowsAzure.MobileServices
             {
                 error = new MobileServicePreconditionFailedException(error, value);
             }
+            throw error;
+        }
+
+        private async Task<JToken> TransformHttpBulkException(Func<Task<JToken>> action)
+        {
+            MobileServiceInvalidBulkOperationException error = null;
+
+            try
+            {
+                return await action();
+            }
+            catch (MobileServiceInvalidOperationException ex)
+            {
+                if (ex.Response != null &&
+                    ex.Response.StatusCode != HttpStatusCode.PreconditionFailed &&
+                    ex.Response.StatusCode != HttpStatusCode.Conflict)
+                {
+                    throw;
+                }
+
+                error = new MobileServiceInvalidBulkOperationException(ex.Message, ex.Request, ex.Response);
+            }
+
+            Tuple<string, JToken> responseContent = await this.ParseContent(error.Response);
+            JArray value = responseContent.Item2.ValidItemsOrNull();
+            if (error.Response.StatusCode == HttpStatusCode.Conflict || error.Response.StatusCode == HttpStatusCode.PreconditionFailed)
+            {
+                error = new MobileServiceBulkConflictException(error, value);
+            }
+
+            // TODO: add precondition failed conditions, although for bulk operations the client does not return any PreconditionFailed responses
+            // because we never send the IF-MATCH header in the bulk operation requests.
+            //else if (error.Response.StatusCode == HttpStatusCode.PreconditionFailed)
+            //{
+            //    error = new MobileServicePreconditionFailedException(error, value);
+            //}
             throw error;
         }
 
