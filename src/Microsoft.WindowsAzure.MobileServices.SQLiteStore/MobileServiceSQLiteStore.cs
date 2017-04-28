@@ -276,6 +276,11 @@ namespace Microsoft.WindowsAzure.MobileServices.SQLiteStore
                 throw new ArgumentNullException("ids");
             }
 
+            if (!ids.Any())
+            {
+                return;
+            }
+
             this.EnsureInitialized();
 
             int batchSize = ValidateQueryBatchSize(ids.Count());
