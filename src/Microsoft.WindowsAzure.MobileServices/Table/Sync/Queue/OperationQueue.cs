@@ -46,7 +46,8 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
         public async virtual Task<MobileServiceTableBulkOperation> PeekAllAsync(long prevSequenceId, MobileServiceTableKind tableKind, IEnumerable<string> tableNames)
         {
             MobileServiceTableQueryDescription query = CreateOperationQuery(prevSequenceId, tableKind, tableNames);
-            query.Top = 3000;
+            // TODO: make this deterministic
+            query.Top = 1000;
             QueryResult result = await this.store.QueryAsync(query);
 
             // get operations for the same table in a sequence and same operation kind
