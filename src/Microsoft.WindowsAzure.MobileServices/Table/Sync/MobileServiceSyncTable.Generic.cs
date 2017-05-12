@@ -160,6 +160,12 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             return base.DeleteAsync(values);
         }
 
+        public async Task DeleteAsync(IMobileServiceTableQuery<T> query)
+        {
+            var values = await ReadAsync(query);
+            await this.DeleteAsync(values);
+        }
+
         public async new Task<T> LookupAsync(string id)
         {
             JToken value = await base.LookupAsync(id);
