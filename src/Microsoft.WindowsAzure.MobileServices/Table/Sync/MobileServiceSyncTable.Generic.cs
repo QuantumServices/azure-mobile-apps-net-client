@@ -116,6 +116,11 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
 
         public async Task InsertAsync(IEnumerable<T> instances)
         {
+            if (!instances.Any())
+            {
+                return;
+            }
+
             MobileServiceSerializer serializer = this.MobileServiceClient.Serializer;
             IList<JObject> values = new List<JObject>();
             foreach (T instance in instances)
@@ -140,6 +145,11 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
 
         public Task UpdateAsync(IEnumerable<T> instances)
         {
+            if (!instances.Any())
+            {
+                Task.FromResult(0);
+            }
+
             MobileServiceSerializer serializer = this.MobileServiceClient.Serializer;
             IEnumerable<JObject> values = instances.Select(instance => serializer.Serialize(instance) as JObject);
             return base.UpdateAsync(values);
@@ -155,6 +165,11 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
 
         public Task DeleteAsync(IEnumerable<T> instances)
         {
+            if (!instances.Any())
+            {
+                Task.FromResult(0);
+            }
+
             MobileServiceSerializer serializer = this.MobileServiceClient.Serializer;
             IEnumerable<JObject> values = instances.Select(instance => serializer.Serialize(instance) as JObject);
             return base.DeleteAsync(values);

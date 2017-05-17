@@ -86,6 +86,11 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
 
         public async Task<IList<JObject>> InsertAsync(IEnumerable<JObject> instances)
         {
+            if (!instances.Any())
+            {
+                return instances.ToList();
+            }
+
             foreach (JObject instance in instances)
             {
                 object id = MobileServiceSerializer.GetId(instance, ignoreCase: false, allowDefault: true);
@@ -116,6 +121,11 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
 
         public async Task UpdateAsync(IEnumerable<JObject> instances)
         {
+            if (!instances.Any())
+            {
+                return;
+            }
+
             IEnumerable<string> ids = instances.Select(instance => EnsureIdIsString(instance));
             instances = instances.Select(instance => RemoveSystemPropertiesKeepVersion(instance));
 
@@ -132,6 +142,11 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
 
         public async Task DeleteAsync(IEnumerable<JObject> instances)
         {
+            if (!instances.Any())
+            {
+                return;
+            }
+
             IEnumerable<string> ids = instances.Select(instance => EnsureIdIsString(instance));
             instances = instances.Select(instance => RemoveSystemPropertiesKeepVersion(instance));
 
