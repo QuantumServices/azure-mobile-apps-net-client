@@ -165,6 +165,11 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
 
         public Task DeleteAsync(IEnumerable<T> instances)
         {
+            return DeleteAsync(instances, false);
+        }
+
+        internal Task DeleteAsync(IEnumerable<T> instances, bool fromQuery)
+        {
             if (!instances.Any())
             {
                 Task.FromResult(0);
@@ -172,13 +177,14 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
 
             MobileServiceSerializer serializer = this.MobileServiceClient.Serializer;
             IEnumerable<JObject> values = instances.Select(instance => serializer.Serialize(instance) as JObject);
-            return base.DeleteAsync(values);
+            return base.DeleteAsync(values, fromQuery);
         }
 
         public async Task DeleteAsync(IMobileServiceTableQuery<T> query)
         {
             var values = await ReadAsync(query);
-            await this.DeleteAsync(values);
+            await this.DeleteAsync(values, true);
+            await this.MobileServiceClient.SyncContext.Store.DeleteAsync(this.queryProvider.Compile(query));
         }
 
         public async new Task<T> LookupAsync(string id)

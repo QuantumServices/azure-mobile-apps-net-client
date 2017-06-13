@@ -353,7 +353,6 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
                 await TryStoreOperation(async () =>
                 {
                     IEnumerable<JObject> items = await this.Store.LookupAsync(bulkOperation.TableName, bulkOperation.ItemIds);
-
                     foreach (var op in bulkOperation.Operations)
                     {
                         op.Item = items.Single(item => item.Value<string>(MobileServiceSystemColumns.Id) == op.ItemId);

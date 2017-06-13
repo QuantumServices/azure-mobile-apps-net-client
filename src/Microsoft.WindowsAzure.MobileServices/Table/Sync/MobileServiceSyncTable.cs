@@ -140,7 +140,12 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             await this.syncContext.DeleteAsync(this.TableName, this.Kind, id, instance);
         }
 
-        public async Task DeleteAsync(IEnumerable<JObject> instances)
+        public Task DeleteAsync(IEnumerable<JObject> instances)
+        {
+            return DeleteAsync(instances, false);
+        }
+
+        internal async Task DeleteAsync(IEnumerable<JObject> instances, bool fromQuery)
         {
             if (!instances.Any())
             {
@@ -150,7 +155,7 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             IEnumerable<string> ids = instances.Select(instance => EnsureIdIsString(instance));
             instances = instances.Select(instance => RemoveSystemPropertiesKeepVersion(instance));
 
-            await this.syncContext.DeleteAsync(this.TableName, this.Kind, ids, instances);
+            await this.syncContext.DeleteAsync(this.TableName, this.Kind, ids, instances, fromQuery);
         }
 
         public async Task DeleteAsync(string query)

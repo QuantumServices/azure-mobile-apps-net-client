@@ -185,7 +185,7 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             await this.ExecuteOperationAsync(operation, item);
         }
 
-        public async Task DeleteAsync(string tableName, MobileServiceTableKind tableKind, IEnumerable<string> ids, IEnumerable<JObject> items)
+        public async Task DeleteAsync(string tableName, MobileServiceTableKind tableKind, IEnumerable<string> ids, IEnumerable<JObject> items, bool fromQuery = false)
         {
             var operation = new DeleteAllOperation(tableName, tableKind, ids)
             {
@@ -201,7 +201,7 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
                 };
             }).ToList();
 
-            await this.ExecuteBulkOperationAsync(operation, items);
+            await this.ExecuteBulkOperationAsync(operation, items, executeLocalOperation: !fromQuery);
         }
 
         public async Task<JObject> LookupAsync(string tableName, string id)
@@ -501,7 +501,7 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
             });
         }
 
-        private Task ExecuteBulkOperationAsync(MobileServiceTableBulkOperation bulkOperation, IEnumerable<JObject> items)
+        private Task ExecuteBulkOperationAsync(MobileServiceTableBulkOperation bulkOperation, IEnumerable<JObject> items, bool executeLocalOperation = true)
         {
             return this.ExecuteBulkOperationSafeAsync(bulkOperation.ItemIds, bulkOperation.TableName, async () =>
             {
@@ -516,7 +516,10 @@ namespace Microsoft.WindowsAzure.MobileServices.Sync
 
                 try
                 {
-                    await bulkOperation.ExecuteLocalAsync(this.localOperationsStore, items); // first execute operation on local store
+                    if (executeLocalOperation)
+                    {
+                        await bulkOperation.ExecuteLocalAsync(this.localOperationsStore, items); // first execute operation on local store
+                    }
                 }
                 catch (Exception ex)
                 {
